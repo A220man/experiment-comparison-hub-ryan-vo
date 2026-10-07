@@ -26,7 +26,8 @@ export const ArtifactRegistry: React.FC<{ artifacts: Artifact[]; runId?: string;
     } catch (err: any) { alert(err.message); }
   };
 
-  const td = "p-2";
+  const td = "p-2", inCls = "w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white";
+  const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl">
@@ -44,7 +45,7 @@ export const ArtifactRegistry: React.FC<{ artifacts: Artifact[]; runId?: string;
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
-              <tr><th className="p-2">Name</th><th className="p-2">Type</th><th className="p-2">Size</th><th className="p-2">SHA-256 Digest</th><th className="p-2 text-center">Status</th><th className="p-2 text-right">Action</th></tr>
+              <tr>{["Name", "Type", "Size", "SHA-256 Digest"].map(h => <th key={h} className={td}>{h}</th>)}<th className={`${td} text-center`}>Status</th><th className={`${td} text-right`}>Action</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60 font-mono">
               {artifacts.map(a => (
@@ -66,10 +67,10 @@ export const ArtifactRegistry: React.FC<{ artifacts: Artifact[]; runId?: string;
           <div className="bg-slate-900 border border-slate-800 rounded-xl max-w-md w-full p-4 space-y-3">
             <h4 className="text-sm font-bold text-white">Register Artifact</h4>
             <form onSubmit={handleCreate} className="space-y-2 text-xs">
-              <div><label className="block text-slate-400 mb-1">Name</label><input type="text" required value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white" /></div>
-              <div><label className="block text-slate-400 mb-1">Type</label><select value={form.type} onChange={e => setForm({ ...form, type: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white"><option value="model_checkpoint">Model Checkpoint</option><option value="eval_predictions">Evaluation Predictions</option></select></div>
-              <div><label className="block text-slate-400 mb-1">Path</label><input type="text" required value={form.path} onChange={e => setForm({ ...form, path: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white font-mono" /></div>
-              <div><label className="block text-slate-400 mb-1">SHA-256</label><input type="text" required value={form.sha} onChange={e => setForm({ ...form, sha: e.target.value })} className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white font-mono" /></div>
+              {(["name", "path", "sha"] as const).map(f => (
+                <div key={f}><label className="block text-slate-400 mb-1 capitalize">{f === "sha" ? "SHA-256" : f}</label><input type="text" required value={form[f]} onChange={e => setF(f, e.target.value)} className={`${inCls} ${f !== "name" ? "font-mono" : ""}`} /></div>
+              ))}
+              <div><label className="block text-slate-400 mb-1">Type</label><select value={form.type} onChange={e => setF("type", e.target.value)} className={inCls}><option value="model_checkpoint">Model Checkpoint</option><option value="eval_predictions">Evaluation Predictions</option></select></div>
               <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={() => setShowAdd(false)} className="px-2.5 py-1 text-slate-400">Cancel</button><button type="submit" className="px-3 py-1 bg-blue-600 text-white rounded">Save</button></div>
             </form>
           </div>

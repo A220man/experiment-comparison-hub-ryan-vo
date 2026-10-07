@@ -3,7 +3,7 @@ import { Award, Compass } from "lucide-react";
 import { ParetoFrontierResult, ParetoPoint } from "../types";
 
 export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (runId: string) => void }> = ({ data, onSelectRun }) => {
-  const [hov, setHov] = useState<ParetoPoint | null>(null);
+  const [hov, setHov] = useState<ParetoPoint | null>(null), bBg = "bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400";
   if (!data?.all_points.length) return <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400"><Compass className="w-8 h-8 mx-auto mb-2 text-slate-500 animate-pulse" /><p className="text-sm">No evaluated runs match objectives.</p></div>;
 
   const [ox, oy = data.objectives[0]] = data.objectives;
@@ -24,21 +24,24 @@ export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (
           <p className="text-xs text-slate-400 mt-0.5">X: <strong className="text-slate-200">{ox.metric}</strong> ({ox.direction}) vs Y: <strong className="text-slate-200">{oy.metric}</strong> ({oy.direction})</p>
         </div>
         <div className="flex items-center gap-3 text-xs">
-          <div className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400">Hypervolume: <span className="font-mono font-bold text-blue-400">{data.hypervolume_indicator.toFixed(4)}</span></div>
-          <div className="bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700 text-slate-400">Frontier: <span className="font-mono font-bold text-emerald-400">{data.frontier_runs_count} / {data.total_evaluated_runs}</span></div>
+          <div className={bBg}>Hypervolume: <span className="font-mono font-bold text-blue-400">{data.hypervolume_indicator.toFixed(4)}</span></div>
+          <div className={bBg}>Frontier: <span className="font-mono font-bold text-emerald-400">{data.frontier_runs_count} / {data.total_evaluated_runs}</span></div>
           {data.knee_point && <div className="bg-amber-950/60 px-3 py-1.5 rounded-lg border border-amber-800 text-amber-300 flex items-center gap-1.5"><Award className="w-3.5 h-3.5 text-amber-400" /><span>Knee: {data.knee_point.variant_name}</span></div>}
         </div>
       </div>
       <div className="relative overflow-hidden bg-slate-950/50 rounded-lg border border-slate-800 p-2">
         <svg viewBox={`0 0 ${w} ${h}`} className="w-full h-auto select-none font-sans">
-          {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => (
-            <g key={`g-${i}`}>
-              <line x1={m.l} y1={m.t + ih * (1 - pct)} x2={w - m.r} y2={m.t + ih * (1 - pct)} stroke="#1e293b" strokeDasharray="4 4" />
-              <text x={m.l - 8} y={m.t + ih * (1 - pct) + 4} textAnchor="end" fill="#64748b" fontSize="10" fontFamily="monospace">{(y0 + (y1 - y0) * pct).toFixed(2)}</text>
-              <line x1={m.l + iw * pct} y1={m.t} x2={m.l + iw * pct} y2={h - m.b} stroke="#1e293b" strokeDasharray="4 4" />
-              <text x={m.l + iw * pct} y={h - m.b + 16} textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">{(x0 + (x1 - x0) * pct).toFixed(2)}</text>
-            </g>
-          ))}
+          {[0, 0.25, 0.5, 0.75, 1].map((pct, i) => {
+            const gy = m.t + ih * (1 - pct), gx = m.l + iw * pct;
+            return (
+              <g key={`g-${i}`}>
+                <line x1={m.l} y1={gy} x2={w - m.r} y2={gy} stroke="#1e293b" strokeDasharray="4 4" />
+                <text x={m.l - 8} y={gy + 4} textAnchor="end" fill="#64748b" fontSize="10" fontFamily="monospace">{(y0 + (y1 - y0) * pct).toFixed(2)}</text>
+                <line x1={gx} y1={m.t} x2={gx} y2={h - m.b} stroke="#1e293b" strokeDasharray="4 4" />
+                <text x={gx} y={h - m.b + 16} textAnchor="middle" fill="#64748b" fontSize="10" fontFamily="monospace">{(x0 + (x1 - x0) * pct).toFixed(2)}</text>
+              </g>
+            );
+          })}
           {fPath && <path d={fPath} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="2 2" className="opacity-80" />}
           {data.all_points.map(pt => {
             const cx = sx(pt.metrics[ox.metric] ?? 0), cy = sy(pt.metrics[oy.metric] ?? 0);
@@ -61,9 +64,9 @@ export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (
       </div>
       <div className="mt-3 flex items-center justify-between text-xs text-slate-400">
         <div className="flex gap-4">
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-emerald-500" />Frontier</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-amber-500" />Knee Point</span>
-          <span className="flex items-center gap-1.5"><span className="w-2.5 h-2.5 rounded-full bg-slate-500" />Dominated</span>
+          {[["bg-emerald-500", "Frontier"], ["bg-amber-500", "Knee Point"], ["bg-slate-500", "Dominated"]].map(([c, l]) => (
+            <span key={l} className="flex items-center gap-1.5"><span className={`w-2.5 h-2.5 rounded-full ${c}`} />{l}</span>
+          ))}
         </div>
         <p className="text-[11px] text-slate-500">Click any point to inspect run record</p>
       </div>

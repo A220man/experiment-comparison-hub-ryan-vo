@@ -1,5 +1,5 @@
 import csv, io, uuid
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -12,10 +12,13 @@ from backend.app.services import experiment_service
 router = APIRouter(tags=['Import & Export'])
 
 @router.get('/export/runs.csv')
-def export_runs_csv(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
+def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
     if not experiment_service.get_experiment_by_id(db, experiment_id):
         raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    runs = db.query(Run).filter(Run.experiment_id == experiment_id).order_by(Run.created_at.desc()).all()
+    q = db.query(Run).filter(Run.experiment_id == experiment_id)
+    if variant_name:
+        q = q.filter(Run.variant_name == variant_name)
+    runs = q.order_by(Run.created_at.desc()).all()
     mk, hk = sorted({k for r in runs for k in (r.metrics or {})}), sorted({k for r in runs for k in (r.hyperparameters or {})})
     buf = io.StringIO()
     w = csv.DictWriter(buf, fieldnames=['id', 'name', 'variant_name', 'seed', 'status', 'commit_hash', 'created_at'] + [f'metric_{m}' for m in mk] + [f'hp_{h}' for h in hk])
@@ -25,7 +28,8 @@ def export_runs_csv(experiment_id: str, db: Session = Depends(get_db), user: Use
         row.update({f'metric_{m}': (r.metrics or {}).get(m, '') for m in mk})
         row.update({f'hp_{h}': (r.hyperparameters or {}).get(h, '') for h in hk})
         w.writerow(row)
-    return Response(content=buf.getvalue(), media_type='text/csv', headers={'Content-Disposition': f'attachment; filename="runs_{experiment_id}.csv"'})
+    fn = f"runs_{experiment_id}_{variant_name}.csv" if variant_name else f"runs_{experiment_id}.csv"
+    return Response(content=buf.getvalue(), media_type='text/csv', headers={'Content-Disposition': f'attachment; filename="{fn}"'})
 
 class ImportBundleRequest(BaseModel):
     bundle: Dict[str, Any]
@@ -35,10 +39,7 @@ def export_experiment(experiment_id: str, db: Session = Depends(get_db), user: U
     exp = experiment_service.get_experiment_by_id(db, experiment_id)
     if not exp:
         raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    runs_data = []
-    for r in db.query(Run).filter(Run.experiment_id == experiment_id).all():
-        arts = [{'name': a.name, 'artifact_type': a.artifact_type, 'file_path': a.file_path, 'file_size_bytes': a.file_size_bytes, 'sha256_hash': a.sha256_hash, 'metadata_json': a.metadata_json} for a in db.query(Artifact).filter(Artifact.run_id == r.id).all()]
-        runs_data.append({'name': r.name, 'variant_name': r.variant_name, 'seed': r.seed, 'hyperparameters': r.hyperparameters, 'metrics': r.metrics, 'status': r.status, 'commit_hash': r.commit_hash, 'tags': r.tags, 'notes': r.notes, 'artifacts': arts})
+    runs_data = [{'name': r.name, 'variant_name': r.variant_name, 'seed': r.seed, 'hyperparameters': r.hyperparameters, 'metrics': r.metrics, 'status': r.status, 'commit_hash': r.commit_hash, 'tags': r.tags, 'notes': r.notes, 'artifacts': [{'name': a.name, 'artifact_type': a.artifact_type, 'file_path': a.file_path, 'file_size_bytes': a.file_size_bytes, 'sha256_hash': a.sha256_hash, 'metadata_json': a.metadata_json} for a in db.query(Artifact).filter(Artifact.run_id == r.id).all()]} for r in db.query(Run).filter(Run.experiment_id == experiment_id).all()]
     return {'version': '1.0', 'format': 'experiment-comparison-hub-bundle', 'experiment': {'name': exp.name, 'description': exp.description, 'domain': exp.domain, 'baseline_variant': exp.baseline_variant}, 'runs': runs_data}
 
 @router.post('/import', status_code=status.HTTP_201_CREATED)
