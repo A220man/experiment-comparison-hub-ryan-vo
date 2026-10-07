@@ -1,0 +1,68 @@
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: experiment-hub-backend
+    ports:
+      - "127.0.0.1:8000:8000"
+    environment:
+      ENVIRONMENT: development
+      DEMO_MODE: "true"
+      SECRET_KEY: ${SECRET_KEY:-local-dev-secret-key-at-least-32-chars-long}
+      DATABASE_URL: sqlite:////app/storage/experiments.db
+      OIDC_DISCOVERY_URL: http://keycloak:8080/realms/experiment-hub/.well-known/openid-configuration
+      OIDC_CLIENT_ID: experiment-hub-client
+      OIDC_CLIENT_SECRET: ${OIDC_CLIENT_SECRET:-}
+      LLM_PROVIDER: ${LLM_PROVIDER:-openai}
+      LLM_MODEL: ${LLM_MODEL:-qwen3.8-27b}
+      LLM_BASE_URL: ${LLM_BASE_URL:-https://llm.chris-vo.com/v1}
+      LLM_API_KEY: ${LLM_API_KEY:-}
+    volumes:
+      - backend_storage:/app/storage
+    healthcheck:
+      test: ["CMD", "python3", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: experiment-hub-frontend
+    ports:
+      - "127.0.0.1:5173:8080"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:8080/"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: experiment-hub-keycloak
+    command: start-dev --health-enabled=true
+    ports:
+      - "127.0.0.1:8080:8080"
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_HEALTH_ENABLED: "true"
+    volumes:
+      - keycloak_data:/opt/keycloak/data
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 || exit 1"]
+      interval: 20s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+volumes:
+  backend_storage:
+  keycloak_data:

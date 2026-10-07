@@ -1,0 +1,40 @@
+# Virtual Environment
+.venv/
+venv/
+ENV/
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Node
+node_modules/
+dist/
+.vite/
+npm-debug.log*
+
+# Database & Storage
+*.db
+*.sqlite
+*.sqlite3
+storage/
+
+# Environment & Credentials
+.env
+.env.local
+.env.*.local
+
+# Agent metadata
+.antigravitycli/
+.omp/
+
+# OS / Editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
