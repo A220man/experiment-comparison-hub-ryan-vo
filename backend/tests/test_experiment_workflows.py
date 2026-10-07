@@ -175,3 +175,34 @@ def test_export_and_import_bundle(analyst_client):
     import_data = import_res.json()
     assert import_data["runs_imported"] == 1
     assert import_data["experiment"]["name"] == "Imported Replicated Experiment"
+
+
+def test_export_runs_csv(viewer_client, analyst_client):
+    """Test exporting experiment runs as downloadable CSV file."""
+    a_client, a_headers = analyst_client
+    v_client, v_headers = viewer_client
+
+    exp = a_client.post("/api/v1/experiments", json={"name": "CSV Export Exp"}, headers=a_headers).json()
+    a_client.post(
+        "/api/v1/runs",
+        json={
+            "experiment_id": exp["id"],
+            "name": "csv_run_1",
+            "variant_name": "v_csv",
+            "seed": 42,
+            "metrics": {"accuracy": 0.88, "latency_ms": 15.2},
+            "hyperparameters": {"lr": 0.001, "batch_size": 32},
+        },
+        headers=a_headers,
+    )
+
+    csv_res = v_client.get(f"/api/v1/export/runs.csv?experiment_id={exp['id']}", headers=v_headers)
+    assert csv_res.status_code == 200
+    assert "text/csv" in csv_res.headers["content-type"]
+    assert f"runs_{exp['id']}.csv" in csv_res.headers["content-disposition"]
+    csv_text = csv_res.text
+    assert "csv_run_1" in csv_text
+    assert "v_csv" in csv_text
+    assert "metric_accuracy" in csv_text
+    assert "hp_lr" in csv_text
+

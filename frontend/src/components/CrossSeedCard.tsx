@@ -3,9 +3,25 @@ import { AlertTriangle, CheckCircle2 } from "lucide-react";
 import { CrossSeedResult } from "../types";
 
 export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => {
-  if (!data || !data.aggregations.length) {
-    return <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400 text-sm">No cross-seed metric aggregations.</div>;
-  }
+  if (!data?.aggregations.length) return <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400 text-sm">No cross-seed metric aggregations.</div>;
+
+  const renderBadge = (t: any) => {
+    if (t.is_statistically_significant) {
+      const isDeg = t.significance_label?.toLowerCase().includes("degrad") || t.significance_label?.toLowerCase().includes("regress");
+      return (
+        <span title={t.conclusion} className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border ${isDeg ? "bg-rose-950 text-rose-400 border-rose-800" : "bg-emerald-950 text-emerald-400 border-emerald-800"}`}>
+          {isDeg ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}{isDeg ? "Significant Degradation" : "Significant Gain"}
+        </span>
+      );
+    }
+    return (
+      <span title={t.conclusion} className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-slate-800 text-slate-300 border border-slate-700">
+        <AlertTriangle className="w-3 h-3 text-amber-400" />Inconclusive / Seed Variance
+      </span>
+    );
+  };
+
+  const th = "p-2 uppercase font-mono text-[10px]", td = "p-2", tdR = "p-2 text-right font-mono";
 
   return (
     <div className="space-y-6">
@@ -21,26 +37,25 @@ export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => 
           <h3 className="text-sm font-semibold text-white flex items-center gap-2">Welch's Two-Sample t-Test & Non-Parametric Significance <span className="text-xs px-2 py-0.5 rounded bg-blue-950 text-blue-300 border border-blue-800 font-mono">Baseline: {data.baseline_variant}</span></h3>
           <p className="text-xs text-slate-400 mt-1">Evaluated against random seed variance (two-tailed α = 0.05).</p>
         </div>
-
         {!data.hypothesis_tests.length ? (
           <div className="p-4 text-center text-xs text-slate-400 bg-slate-950 rounded-lg">Add at least two variants for comparative hypothesis testing.</div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="bg-slate-950 text-slate-400 uppercase font-mono text-[10px] border-b border-slate-800">
+              <thead className={`bg-slate-950 text-slate-400 border-b border-slate-800 ${th}`}>
                 <tr><th className="p-2">Variant</th><th className="p-2">Metric</th><th className="p-2 text-right">Base</th><th className="p-2 text-right">Treat</th><th className="p-2 text-right">Delta</th><th className="p-2 text-right">Welch p-value</th><th className="p-2 text-right">Cohen's d</th><th className="p-2 text-center">Result</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-sans">
                 {data.hypothesis_tests.map((t, idx) => (
                   <tr key={idx} className="hover:bg-slate-800/40">
-                    <td className="p-2 font-medium text-slate-200">{t.treatment_variant}</td>
-                    <td className="p-2 font-mono text-slate-300">{t.metric}</td>
-                    <td className="p-2 text-right font-mono text-slate-400">{t.baseline_mean.toFixed(4)}</td>
-                    <td className="p-2 text-right font-mono text-slate-200">{t.treatment_mean.toFixed(4)}</td>
-                    <td className="p-2 text-right font-mono"><span className={t.mean_delta > 0 ? "text-emerald-400" : "text-rose-400"}>{t.mean_delta > 0 ? "+" : ""}{t.mean_delta.toFixed(4)} ({t.percent_change.toFixed(1)}%)</span></td>
-                    <td className="p-2 text-right font-mono font-bold"><span className={t.p_value_welch < 0.05 ? "text-amber-400" : "text-slate-400"}>{t.p_value_welch.toFixed(4)}</span></td>
-                    <td className="p-2 text-right font-mono text-slate-300">{t.cohens_d.toFixed(2)}</td>
-                    <td className="p-2 text-center"><span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] bg-emerald-950 text-emerald-400 border border-emerald-800"><CheckCircle2 className="w-3 h-3" />Significant Gain</span></td>
+                    <td className={`${td} font-medium text-slate-200`}>{t.treatment_variant}</td>
+                    <td className={`${td} font-mono text-slate-300`}>{t.metric}</td>
+                    <td className={`${tdR} text-slate-400`}>{t.baseline_mean.toFixed(4)}</td>
+                    <td className={`${tdR} text-slate-200`}>{t.treatment_mean.toFixed(4)}</td>
+                    <td className={tdR}><span className={t.mean_delta > 0 ? "text-emerald-400" : "text-rose-400"}>{t.mean_delta > 0 ? "+" : ""}{t.mean_delta.toFixed(4)} ({t.percent_change.toFixed(1)}%)</span></td>
+                    <td className={`${tdR} font-bold`}><span className={t.p_value_welch < 0.05 ? "text-amber-400" : "text-slate-400"}>{t.p_value_welch.toFixed(4)}</span></td>
+                    <td className={`${tdR} text-slate-300`}>{t.cohens_d.toFixed(2)}</td>
+                    <td className={`${td} text-center`}>{renderBadge(t)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -56,19 +71,19 @@ export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => 
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
-            <thead className="bg-slate-950 text-slate-400 uppercase text-[10px] border-b border-slate-800">
+            <thead className={`bg-slate-950 text-slate-400 border-b border-slate-800 ${th}`}>
               <tr><th className="p-2">Variant</th><th className="p-2">Metric</th><th className="p-2 text-center">N</th><th className="p-2 text-right">Mean ± Std</th><th className="p-2 text-right">Median [IQR]</th><th className="p-2 text-right">Student's t 95% CI</th><th className="p-2 text-right">Bootstrap 95% CI</th></tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {data.aggregations.map((agg, idx) => (
                 <tr key={idx} className="hover:bg-slate-800/40">
-                  <td className="p-2 font-sans font-medium text-slate-200">{agg.variant_name}</td>
-                  <td className="p-2 text-slate-300 font-semibold">{agg.metric}</td>
-                  <td className="p-2 text-center text-slate-400"><span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">N={agg.sample_size_n}</span></td>
-                  <td className="p-2 text-right text-slate-200 font-bold">{agg.mean.toFixed(4)} <span className="text-slate-400 font-normal">± {agg.std_dev.toFixed(4)}</span></td>
-                  <td className="p-2 text-right text-slate-300">{agg.median.toFixed(4)} <span className="text-slate-400">[{agg.iqr.toFixed(4)}]</span></td>
-                  <td className="p-2 text-right text-blue-400">[{agg.ci_t_distribution.lower.toFixed(4)}, {agg.ci_t_distribution.upper.toFixed(4)}]</td>
-                  <td className="p-2 text-right text-emerald-400">[{agg.ci_bootstrap.lower.toFixed(4)}, {agg.ci_bootstrap.upper.toFixed(4)}]</td>
+                  <td className={`${td} font-sans font-medium text-slate-200`}>{agg.variant_name}</td>
+                  <td className={`${td} text-slate-300 font-semibold`}>{agg.metric}</td>
+                  <td className={`${td} text-center text-slate-400`}><span className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">N={agg.sample_size_n}</span></td>
+                  <td className={`${tdR} text-slate-200 font-bold`}>{agg.mean.toFixed(4)} <span className="text-slate-400 font-normal">± {agg.std_dev.toFixed(4)}</span></td>
+                  <td className={`${tdR} text-slate-300`}>{agg.median.toFixed(4)} <span className="text-slate-400">[{agg.iqr.toFixed(4)}]</span></td>
+                  <td className={`${tdR} text-blue-400`}>[{agg.ci_t_distribution.lower.toFixed(4)}, {agg.ci_t_distribution.upper.toFixed(4)}]</td>
+                  <td className={`${tdR} text-emerald-400`}>[{agg.ci_bootstrap.lower.toFixed(4)}, {agg.ci_bootstrap.upper.toFixed(4)}]</td>
                 </tr>
               ))}
             </tbody>
