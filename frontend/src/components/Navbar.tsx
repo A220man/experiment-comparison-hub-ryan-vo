@@ -19,10 +19,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditLogs, onNavigateHome 
             <Activity className="w-6 h-6" />
           </div>
           <div>
-            <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">
-              Experiment Comparison Hub
-              <span className="text-xs px-2 py-0.5 rounded-full bg-blue-900/60 text-blue-300 border border-blue-700/50">v0.1.0</span>
-            </h1>
+            <h1 className="text-base font-bold text-white tracking-tight flex items-center gap-2">Experiment Comparison Hub</h1>
             <p className="text-xs text-slate-400">Ryan Vo | AI & Machine Learning</p>
           </div>
         </div>
@@ -38,7 +35,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditLogs, onNavigateHome 
             <div className="flex items-center space-x-1.5 bg-slate-800/80 p-1 rounded-lg border border-slate-700 text-xs">
               <span className="text-slate-400 px-2 font-mono text-[11px] flex items-center gap-1"><Shield className="w-3 h-3 text-amber-400" />DEMO:</span>
               {(["viewer", "analyst", "admin"] as const).map(role => (
-                <button key={role} onClick={() => switchDemoProfile(role)} className={`px-2 py-1 rounded text-xs transition-colors capitalize ${currentRole === role ? (role === "admin" ? "bg-purple-600 text-white font-semibold" : role === "analyst" ? "bg-blue-600 text-white font-semibold" : "bg-slate-600 text-white font-semibold") : "text-slate-400 hover:text-slate-200"}`}>
+                <button key={role} onClick={() => switchDemoProfile(role)} className={`px-2 py-1 rounded text-xs capitalize ${currentRole === role ? `${role === "admin" ? "bg-purple-600" : role === "analyst" ? "bg-blue-600" : "bg-slate-600"} text-white font-semibold` : "text-slate-400 hover:text-slate-200"}`}>
                   {role}
                 </button>
               ))}

@@ -16,7 +16,9 @@ export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; on
     })();
   }, [baseRunId, targetRunId]);
 
-  const td = "p-2", tdR = "p-2 text-right";
+  const td = "p-2", tdR = "p-2 text-right", fn = (v: number | null) => v !== null ? v.toFixed(4) : "—";
+  const tbl = "w-full text-left text-xs bg-slate-950/40 rounded border border-slate-800";
+  const th = "bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
@@ -41,16 +43,16 @@ export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; on
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase text-slate-400 font-mono mb-1">Metric Divergence</h4>
-                <table className="w-full text-left text-xs bg-slate-950/40 rounded border border-slate-800">
-                  <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
-                    <tr><th className="p-2">Metric</th><th className="p-2 text-right">Base</th><th className="p-2 text-right">Target</th><th className="p-2 text-right">Delta</th><th className="p-2 text-right">% Change</th></tr>
+                <table className={tbl}>
+                  <thead className={th}>
+                    <tr><th className={td}>Metric</th>{["Base", "Target", "Delta", "% Change"].map(h => <th key={h} className={tdR}>{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {diff.metric_deltas.map((m, i) => (
                       <tr key={i} className="hover:bg-slate-800/30">
                         <td className={`${td} font-medium text-slate-200`}>{m.metric}</td>
-                        <td className={`${tdR} text-slate-400`}>{m.base_value !== null ? m.base_value.toFixed(4) : "—"}</td>
-                        <td className={`${tdR} text-slate-200 font-semibold`}>{m.target_value !== null ? m.target_value.toFixed(4) : "—"}</td>
+                        <td className={`${tdR} text-slate-400`}>{fn(m.base_value)}</td>
+                        <td className={`${tdR} text-slate-200 font-semibold`}>{fn(m.target_value)}</td>
                         <td className={tdR}><span className={m.improved === true ? "text-emerald-400 font-bold" : m.improved === false ? "text-rose-400 font-bold" : "text-slate-300"}>{m.absolute_delta !== null ? `${m.absolute_delta > 0 ? "+" : ""}${m.absolute_delta.toFixed(4)}` : "—"}</span></td>
                         <td className={`${tdR} text-slate-300`}>{m.percent_change !== null ? `${m.percent_change > 0 ? "+" : ""}${m.percent_change.toFixed(2)}%` : "—"}</td>
                       </tr>
@@ -60,9 +62,9 @@ export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; on
               </div>
               <div>
                 <h4 className="text-xs font-bold uppercase text-slate-400 font-mono mb-1">Hyperparameter Deltas</h4>
-                <table className="w-full text-left text-xs bg-slate-950/40 rounded border border-slate-800">
-                  <thead className="bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800">
-                    <tr><th className="p-2">Parameter</th><th className="p-2">Base</th><th className="p-2"></th><th className="p-2">Target</th></tr>
+                <table className={tbl}>
+                  <thead className={th}>
+                    <tr>{["Parameter", "Base", "", "Target"].map((h, i) => <th key={i} className={td}>{h}</th>)}</tr>
                   </thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {diff.parameter_deltas.map((p, i) => (

@@ -12,10 +12,10 @@ class DemoSwitchRequest(BaseModel):
     profile: Literal['admin', 'analyst', 'viewer']
 
 class ExperimentCreate(BaseModel):
-    name: str = Field(..., min_length=2, max_length=255); description: Optional[str] = Field(default=None, max_length=2000); domain: str = Field(default='ai-ml', max_length=64); baseline_variant: Optional[str] = Field(default=None, max_length=128)
+    name: str; description: Optional[str] = None; domain: str = 'ai-ml'; baseline_variant: Optional[str] = None
 
 class ExperimentUpdate(BaseModel):
-    name: Optional[str] = Field(default=None, min_length=2, max_length=255); description: Optional[str] = Field(default=None, max_length=2000); baseline_variant: Optional[str] = Field(default=None, max_length=128)
+    name: Optional[str] = None; description: Optional[str] = None; baseline_variant: Optional[str] = None
 
 class ExperimentResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -25,7 +25,7 @@ class ExperimentListResponse(PaginatedResponse):
     items: List[ExperimentResponse]
 
 class RunCreate(BaseModel):
-    experiment_id: str; name: str = Field(..., min_length=1, max_length=255); variant_name: str = Field(..., min_length=1, max_length=128); seed: int = Field(default=42); hyperparameters: Dict[str, Any] = Field(default_factory=dict); metrics: Dict[str, float] = Field(default_factory=dict); status: str = Field(default='COMPLETED'); commit_hash: Optional[str] = Field(default=None, max_length=64); tags: List[str] = Field(default_factory=list); notes: Optional[str] = Field(default=None, max_length=2000)
+    experiment_id: str; name: str; variant_name: str; seed: int = 42; hyperparameters: Dict[str, Any] = {}; metrics: Dict[str, float] = {}; status: str = 'COMPLETED'; commit_hash: Optional[str] = None; tags: List[str] = []; notes: Optional[str] = None
 
     @field_validator('metrics')
     @classmethod
@@ -50,7 +50,7 @@ class RunListResponse(PaginatedResponse):
     items: List[RunResponse]
 
 class ArtifactCreate(BaseModel):
-    run_id: str; name: str = Field(..., min_length=1, max_length=255); artifact_type: str = Field(..., min_length=1, max_length=64); file_path: str = Field(..., min_length=1, max_length=512); file_size_bytes: int = Field(default=0, ge=0); sha256_hash: str = Field(..., min_length=64, max_length=64); metadata_json: Dict[str, Any] = Field(default_factory=dict)
+    run_id: str; name: str; artifact_type: str; file_path: str; file_size_bytes: int = 0; sha256_hash: str; metadata_json: Dict[str, Any] = {}
 
 class ArtifactResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
@@ -72,7 +72,7 @@ class ObjectiveConfig(BaseModel):
     metric: str; direction: Literal['maximize', 'minimize']
 
 class ParetoRequest(BaseModel):
-    experiment_id: str; objectives: List[ObjectiveConfig] = Field(..., min_length=2, max_length=3); variant_filter: Optional[List[str]] = None
+    experiment_id: str; objectives: List[ObjectiveConfig]; variant_filter: Optional[List[str]] = None
 
 class ParetoPoint(BaseModel):
     run_id: str; run_name: str; variant_name: str; seed: int; metrics: Dict[str, float]; is_frontier: bool; is_knee_point: bool; normalized_distance_to_utopia: Optional[float] = None
@@ -81,7 +81,7 @@ class ParetoFrontierResponse(BaseModel):
     experiment_id: str; objectives: List[ObjectiveConfig]; all_points: List[ParetoPoint]; frontier_points: List[ParetoPoint]; knee_point: Optional[ParetoPoint]; hypervolume_indicator: float; total_evaluated_runs: int; frontier_runs_count: int; dominated_runs_count: int
 
 class CrossSeedRequest(BaseModel):
-    experiment_id: str; baseline_variant: Optional[str] = None; metrics: List[str] = Field(default=['accuracy', 'val_loss', 'latency_ms']); alpha: float = Field(default=0.05, gt=0.0, lt=0.5)
+    experiment_id: str; baseline_variant: Optional[str] = None; metrics: List[str] = ['accuracy', 'val_loss', 'latency_ms']; alpha: float = 0.05
 
 class ConfidenceInterval(BaseModel):
     lower: float; upper: float; confidence_level: float = 0.95; method: str
@@ -96,7 +96,7 @@ class CrossSeedResponse(BaseModel):
     experiment_id: str; baseline_variant: str; variants_evaluated: List[str]; metrics_evaluated: List[str]; aggregations: List[SeedAggregatedMetric]; hypothesis_tests: List[HypothesisTestResult]; sample_size_warnings: List[str]
 
 class SensitivityRequest(BaseModel):
-    experiment_id: str; target_metric: str = Field(default='accuracy')
+    experiment_id: str; target_metric: str = 'accuracy'
 
 class ParameterSensitivity(BaseModel):
     parameter: str; parameter_type: Literal['numeric', 'categorical']; pearson_r: Optional[float] = None; spearman_rho: Optional[float] = None; importance_score: float; summary: str

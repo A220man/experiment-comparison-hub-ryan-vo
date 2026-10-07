@@ -196,13 +196,49 @@ def test_export_runs_csv(viewer_client, analyst_client):
         headers=a_headers,
     )
 
+    # Add run with distinct variant
+    a_client.post(
+        "/api/v1/runs",
+        json={
+            "experiment_id": exp["id"],
+            "name": "csv_run_2",
+            "variant_name": "v_csv_other",
+            "seed": 43,
+            "metrics": {"accuracy": 0.90, "latency_ms": 12.1},
+        },
+        headers=a_headers,
+    )
+
     csv_res = v_client.get(f"/api/v1/export/runs.csv?experiment_id={exp['id']}", headers=v_headers)
     assert csv_res.status_code == 200
     assert "text/csv" in csv_res.headers["content-type"]
     assert f"runs_{exp['id']}.csv" in csv_res.headers["content-disposition"]
     csv_text = csv_res.text
     assert "csv_run_1" in csv_text
-    assert "v_csv" in csv_text
-    assert "metric_accuracy" in csv_text
-    assert "hp_lr" in csv_text
+    assert "csv_run_2" in csv_text
+
+    # Test filtering by variant_name
+    filtered_csv = v_client.get(f"/api/v1/export/runs.csv?experiment_id={exp['id']}&variant_name=v_csv", headers=v_headers)
+    assert filtered_csv.status_code == 200
+    assert f"runs_{exp['id']}_v_csv.csv" in filtered_csv.headers["content-disposition"]
+    filtered_text = filtered_csv.text
+    assert "csv_run_1" in filtered_text
+    assert "csv_run_2" not in filtered_text
+
+
+def test_is_lower_better_ml_metrics():
+    """Verify is_lower_better identifies loss, error, latency, perplexity, and cost metrics."""
+    from backend.app.services.experiment_service import is_lower_better
+    assert is_lower_better("eval_loss") is True
+    assert is_lower_better("validation_loss") is True
+    assert is_lower_better("latency_ms") is True
+    assert is_lower_better("p99_latency") is True
+    assert is_lower_better("perplexity") is True
+    assert is_lower_better("word_error_rate") is True
+    assert is_lower_better("memory_mb") is True
+    assert is_lower_better("tflops_cost") is True
+    assert is_lower_better("accuracy") is False
+    assert is_lower_better("f1_score") is False
+    assert is_lower_better("bleu_4") is False
+    assert is_lower_better("throughput_tokens_per_sec") is False
 

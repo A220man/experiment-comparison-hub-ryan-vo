@@ -47,7 +47,7 @@ export const api = {
     delete: (id: string) => req<void>(`/api/v1/experiments/${id}`, { method: "DELETE" }),
   },
   runs: {
-    list: (id: string, p = 1, sz = 100) => req<{ items: Run[]; total: number; page: number; pages: number }>(`/api/v1/runs?experiment_id=${id}&page=${p}&page_size=${sz}`),
+    list: (id: string, p = 1, sz = 100, variant?: string) => req<{ items: Run[]; total: number; page: number; pages: number }>(`/api/v1/runs?experiment_id=${id}&page=${p}&page_size=${sz}${variant ? `&variant_name=${encodeURIComponent(variant)}` : ""}`),
     create: (data: any) => req<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(data) }),
     delete: (id: string) => req<void>(`/api/v1/runs/${id}`, { method: "DELETE" }),
     diff: (b: string, t: string) => req<RunDiffResult>(`/api/v1/runs/diff?base_run_id=${b}&target_run_id=${t}`),

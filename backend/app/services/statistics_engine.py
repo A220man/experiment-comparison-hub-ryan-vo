@@ -3,6 +3,7 @@ from typing import Dict, List, Optional, Tuple
 import numpy as np
 from scipy import stats
 from backend.app.models.schemas import ConfidenceInterval, CrossSeedResponse, HypothesisTestResult, SeedAggregatedMetric
+from backend.app.services.experiment_service import is_lower_better
 
 def compute_bootstrap_ci(values: np.ndarray, n_resamples: int = 2000, confidence_level: float = 0.95, seed: int = 42) -> Tuple[float, float]:
     n = len(values)
@@ -58,7 +59,7 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
         if len(vr) < 3: warnings.append(f"Variant '{vn}' has only {len(vr)} seed(s); 3–5 recommended.")
         aggs.extend(aggregate_variant_metrics(vr, metrics_to_eval))
     base_runs = v_dict.get(base, [])
-    tests, lower_better = [], {'loss', 'val_loss', 'latency_ms', 'perplexity', 'error_rate', 'memory_mb', 'flpop'}
+    tests = []
     for t_name, t_runs in v_dict.items():
         if t_name == base: continue
         for m in metrics_to_eval:
@@ -77,7 +78,7 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
             d_val = compute_cohens_d(ab, at)
             c_val = compute_cliffs_delta(at, ab)
             sig = p_w < alpha
-            better = delta < 0 if m.lower() in lower_better else delta > 0
+            better = delta < 0 if is_lower_better(m) else delta > 0
             lbl = ('Significant Improvement' if better else 'Significant Degradation') if sig else 'Inconclusive / Seed Variance'
             concl = f"{t_name} vs {base} on {m}: {lbl} (p={p_w:.4f}, d={d_val:.2f})"
             tests.append(HypothesisTestResult(baseline_variant=base, treatment_variant=t_name, metric=m, baseline_mean=round(bm, 5), treatment_mean=round(tm, 5), mean_delta=round(delta, 5), percent_change=round(pct, 3), t_statistic=round(t_stat, 4), p_value_welch=round(p_w, 5), p_value_mann_whitney=round(p_mw, 5), cohens_d=round(d_val, 3), cliffs_delta=round(c_val, 3), is_statistically_significant=sig, significance_label=lbl, conclusion=concl))

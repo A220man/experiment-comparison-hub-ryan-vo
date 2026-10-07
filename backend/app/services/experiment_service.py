@@ -85,17 +85,20 @@ def delete_run(db: Session, run: Run, email: str, ip: Optional[str] = None) -> N
     log_audit_event(db, email, 'DELETE_RUN', 'run', rid, {'deleted_id': rid}, ip)
     db.commit()
 
+def is_lower_better(m: str) -> bool:
+    s = m.lower()
+    return any(x in s for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))
+
 def diff_runs(base_run: Run, target_run: Run) -> RunDiffResponse:
     bp, tp = base_run.hyperparameters or {}, target_run.hyperparameters or {}
     p_deltas = [ParameterDelta(parameter=k, base_value=bp.get(k), target_value=tp.get(k), changed=bp.get(k) != tp.get(k)) for k in sorted(set(bp) | set(tp))]
     bm, tm = base_run.metrics or {}, target_run.metrics or {}
-    lower_better = {'loss', 'val_loss', 'latency_ms', 'perplexity', 'error_rate', 'memory_mb', 'flpop'}
     m_deltas = []
     for m in sorted(set(bm) | set(tm)):
         bv, tv = bm.get(m), tm.get(m)
         d = round(float(tv) - float(bv), 5) if bv is not None and tv is not None else None
         pct = round(d / abs(bv) * 100.0, 3) if d is not None and bv not in (0, None) else 0.0 if d == 0 else None
-        imp = (d < 0 if m.lower() in lower_better else d > 0) if d is not None else None
+        imp = (d < 0 if is_lower_better(m) else d > 0) if d is not None else None
         m_deltas.append(MetricDelta(metric=m, base_value=bv, target_value=tv, absolute_delta=d, percent_change=pct, improved=imp))
     return RunDiffResponse(base_run=RunResponse.model_validate(base_run), target_run=RunResponse.model_validate(target_run), parameter_deltas=p_deltas, metric_deltas=m_deltas)
 
