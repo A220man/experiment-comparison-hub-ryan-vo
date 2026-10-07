@@ -25,9 +25,9 @@ jobs:
 
       - name: Run pytest
         env:
-          PYTHONPATH: backend
+          PYTHONPATH: .
         run: |
-          pytest backend/tests -v
+          python -m pytest backend/tests -v
 
   frontend-test:
     runs-on: ubuntu-latest
@@ -63,3 +63,23 @@ jobs:
 
       - name: Build Frontend Docker Image
         run: docker build -f frontend/Dockerfile -t experiment-hub-frontend:ci ./frontend
+
+      - name: Smoke test backend container
+        run: |
+          docker run -d --name backend-smoke -e ENVIRONMENT=development -e DEMO_MODE=true experiment-hub-backend:ci
+          for i in $(seq 1 30); do
+            if docker exec backend-smoke python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"; then break; fi
+            sleep 2
+          done
+          docker exec backend-smoke python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz')"
+      - name: Smoke test frontend container
+        run: |
+          docker run -d --name frontend-smoke --link backend-smoke:backend experiment-hub-frontend:ci
+          sleep 3
+          docker exec frontend-smoke wget -qO- http://127.0.0.1:8080/
+      - name: Container diagnostics and cleanup
+        if: always()
+        run: |
+          docker logs backend-smoke || true
+          docker logs frontend-smoke || true
+          docker rm -f backend-smoke frontend-smoke || true

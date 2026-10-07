@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.1.0] - 2026-10-07
+
+## Unreleased
+
+- Fix backend CI package imports by running pytest from the repository root.
+- Fix the backend Docker build context and missing target package directory.
+- Exclude local dependencies and runtime data from the Docker build context.
+- Run real backend and frontend container health smoke checks in CI.
+
 ## [1.0.0] - 2026-10-07
 
 All notable changes to the Experiment Comparison Hub will be documented in this file.
