@@ -172,7 +172,7 @@ source .venv/bin/activate
 pip install -r backend/requirements.txt
 
 # Run full backend test suite (24 tests)
-PYTHONPATH=backend pytest backend/tests
+PYTHONPATH=. python -m pytest backend/tests
 
 # Start FastAPI development server
 uvicorn backend.app.main:app --host 127.0.0.1 --port 8000 --reload
@@ -219,7 +219,7 @@ For production deployments:
 ### Reproducible Evaluation Command
 To verify the statistical engine and Pareto optimization workflows against empirical baselines, run:
 ```bash
-PYTHONPATH=backend pytest backend/tests/test_statistics_engine.py backend/tests/test_pareto_engine.py -v
+PYTHONPATH=. python -m pytest backend/tests/test_statistics_engine.py backend/tests/test_pareto_engine.py -v
 ```
 
 ### Data Provenance & Experimental Baseline

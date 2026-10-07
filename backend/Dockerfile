@@ -9,18 +9,11 @@ WORKDIR /app
 RUN groupadd -g 1001 appuser && \
     useradd -u 1001 -g appuser -s /bin/bash -m appuser
 
-COPY requirements.txt* backend/requirements.txt* /app/
+COPY backend/requirements.txt /app/requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
-
-COPY . /tmp/src
-RUN if [ -d /tmp/src/backend/app ]; then \
-        mv /tmp/src/backend/app /app/backend/app; \
-    else \
-        mkdir -p /app/backend && mv /tmp/src/app /app/backend/app; \
-    fi && \
-    rm -rf /tmp/src && \
-    mkdir -p /app/storage && \
-    chown -R appuser:appuser /app
+COPY backend /app/backend
+COPY VERSION /app/VERSION
+RUN mkdir -p /app/storage && chown -R appuser:appuser /app
 
 USER appuser
 
