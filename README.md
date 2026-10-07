@@ -1,6 +1,6 @@
 # Experiment Comparison Hub | Ryan Vo | AI & Machine Learning
 
-Current version: `1.0.0`.
+Current version: `1.1.0`.
 
 Experiment Comparison Hub is an empirical experiment tracking and multi-objective comparison platform designed for machine learning researchers, evaluation engineers, and MLOps teams. Machine learning practitioners often struggle to distinguish genuine algorithmic improvements from random seed fluctuations and face conflicting trade-offs—such as accuracy versus inference latency or perplexity versus model memory—without mathematically grounded tools. The Hub solves this by computing non-dominated Pareto frontiers with normalized knee-point detection, running multi-seed hypothesis testing via Welch's two-sample t-tests and empirical bootstrap confidence intervals, ranking hyperparameter sensitivity, cryptographically verifying model artifacts with SHA-256 digests, and generating trade-off advisories grounded strictly in empirical evidence.
 
@@ -240,12 +240,6 @@ PYTHONPATH=. python -m pytest backend/tests/test_statistics_engine.py backend/te
 - **Small Sample Size ($N < 3$)**: When fewer than 3 seeds are logged for a variant, degrees of freedom are insufficient for reliable Welch hypothesis testing. The engine explicitly flags a `Statistical Power Notice` alerting users that statistical power is underpowered.
 - **Zero-Variance Samples**: If all runs for a variant yield identical metric values (e.g., deterministic evaluation without perturbation), sample variance is 0. The engine handles catastrophic cancellation gracefully without raising divide-by-zero errors.
 - **Multi-Objective Dimensionality**: While 2D Pareto frontiers are computed using exact step-wise integration, higher-dimensional frontiers (3+ objectives) use Monte Carlo approximation ($N=5000$ samples), introducing a standard error of $\approx \pm 0.01$ in hypervolume estimation.
-
----
-
-## AI-Assisted Development Statement
-
-This repository was developed with pair-programming assistance from Google Antigravity / Gemini CLI. Architecture design, multi-objective Pareto algorithms, Welch hypothesis testing implementations, security threat modeling, and comprehensive test coverage were guided and verified through reproducible test suites.
 
 ---
 

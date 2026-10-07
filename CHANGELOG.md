@@ -1,5 +1,7 @@
 # Changelog
 
+## [1.1.0] - 2026-10-07
+
 ## Unreleased
 
 - Fix backend CI package imports by running pytest from the repository root.
