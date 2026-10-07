@@ -1,9 +1,15 @@
 # Changelog
 
+## [1.2.0] - 2026-10-07
+
 ## [1.1.0] - 2026-10-07
 
 ## Unreleased
 
+- Add CSV export endpoint (`GET /api/v1/export/runs.csv`) for tabular metrics and hyperparameter export.
+- Add experiment bundle import workflow in the frontend with file upload and JSON editor.
+- Add run detail inspection modal in frontend accessible from run table rows and Pareto chart points.
+- Fix hypothesis test outcome badge logic in `CrossSeedCard` to accurately differentiate significant gains, degradations, and inconclusive seed variance.
 - Fix backend CI package imports by running pytest from the repository root.
 - Fix the backend Docker build context and missing target package directory.
 - Exclude local dependencies and runtime data from the Docker build context.

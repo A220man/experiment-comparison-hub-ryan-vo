@@ -68,5 +68,7 @@ export const api = {
   },
   bundles: {
     export: (id: string) => req<any>(`/api/v1/export/experiments/${id}`),
+    import: (bundle: any) => req<{ status: string; experiment: Experiment; runs_imported: number; artifacts_imported: number }>("/api/v1/import", { method: "POST", body: JSON.stringify({ bundle }) }),
   },
 };
+

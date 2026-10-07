@@ -59,6 +59,6 @@ async def compute_advisory_explanation(req: AdvisoryExplanationRequest, db: Sess
         'frontier_count': pareto_res.frontier_runs_count,
         'knee_point': pareto_res.knee_point.run_name if pareto_res.knee_point else None,
         'hypervolume': pareto_res.hypervolume_indicator,
-        'comparisons': [{'treatment_variant': c.treatment_variant, 'baseline_variant': c.baseline_variant, 'metric': c.metric, 'mean_delta': c.mean_delta, 'percent_change': c.percent_change, 'p_value_welch': c.p_value_welch, 'cohens_d': c.cohens_d, 'is_statistically_significant': c.is_statistically_significant, 'significance_label': c.significance_label} for c in cross_res.hypothesis_tests]
+        'comparisons': [c.model_dump() for c in cross_res.hypothesis_tests]
     }
     return await generate_advisory_explanation(evidence, req.experiment_id)
