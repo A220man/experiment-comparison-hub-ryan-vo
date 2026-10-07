@@ -1,0 +1,21 @@
+{
+  "schema_version": 1,
+  "name": "experiment-comparison-hub-ryan-vo",
+  "owner": "A220man",
+  "email": "ryandtvo@gmail.com",
+  "domain": "ai-ml",
+  "summary": "AI/ML experiment tracking and comparison platform calculating multi-objective Pareto frontiers, multi-seed statistical significance, and hyperparameter sensitivity.",
+  "workflows": [
+    "Multi-objective Pareto frontier calculation and trade-off knee point detection across accuracy, latency, and resource metrics",
+    "Cross-seed statistical aggregation and Welch's t-test hypothesis testing with 95% confidence intervals to verify significant improvements",
+    "Hyperparameter sensitivity correlation analysis, artifact SHA-256 integrity verification, and grounded advisory explanations"
+  ],
+  "auth": "oidc-keycloak-saml-broker",
+  "llm_providers": [
+    "openai-compatible",
+    "anthropic",
+    "gemini",
+    "ollama"
+  ],
+  "version": "1.0.0"
+}
