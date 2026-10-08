@@ -6,23 +6,14 @@ export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => 
   if (!data?.aggregations.length) return <div className="p-8 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400 text-sm">No cross-seed metric aggregations.</div>;
 
   const renderBadge = (t: any) => {
-    const bSpan = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px]";
-    if (t.is_statistically_significant) {
-      const isDeg = t.significance_label?.toLowerCase().includes("degrad") || t.significance_label?.toLowerCase().includes("regress");
-      return (
-        <span title={t.conclusion} className={`${bSpan} border ${isDeg ? "bg-rose-950 text-rose-400 border-rose-800" : "bg-emerald-950 text-emerald-400 border-emerald-800"}`}>
-          {isDeg ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}{isDeg ? "Significant Degradation" : "Significant Gain"}
-        </span>
-      );
-    }
-    return (
-      <span title={t.conclusion} className={`${bSpan} bg-slate-800 text-slate-300 border border-slate-700`}>
-        <AlertTriangle className="w-3 h-3 text-amber-400" />Inconclusive / Seed Variance
-      </span>
-    );
+    const bSpan = "inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] border";
+    if (!t.is_statistically_significant) return <span title={t.conclusion} className={`${bSpan} bg-slate-800 text-slate-300 border-slate-700`}><AlertTriangle className="w-3 h-3 text-amber-400" />Inconclusive / Seed Variance</span>;
+    const isDeg = t.significance_label?.toLowerCase().includes("degrad") || t.significance_label?.toLowerCase().includes("regress");
+    return <span title={t.conclusion} className={`${bSpan} ${isDeg ? "bg-rose-950 text-rose-400 border-rose-800" : "bg-emerald-950 text-emerald-400 border-emerald-800"}`}>{isDeg ? <AlertTriangle className="w-3 h-3" /> : <CheckCircle2 className="w-3 h-3" />}{isDeg ? "Significant Degradation" : "Significant Gain"}</span>;
   };
 
   const th = "p-2 uppercase font-mono text-[10px]", td = "p-2", tdR = "p-2 text-right font-mono", f4 = (n: number) => n.toFixed(4);
+  const thVM = ["Variant", "Metric"].map(h => <th key={h} className="p-2">{h}</th>);
 
   return (
     <div className="space-y-6">
@@ -44,7 +35,7 @@ export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs">
               <thead className={`bg-slate-950 text-slate-400 border-b border-slate-800 ${th}`}>
-                <tr>{["Variant", "Metric"].map(h => <th key={h} className="p-2">{h}</th>)}{["Base", "Treat", "Delta", "Welch p-value", "Cohen's d"].map(h => <th key={h} className="p-2 text-right">{h}</th>)}<th className="p-2 text-center">Result</th></tr>
+                <tr>{thVM}{["Base", "Treat", "Delta", "Welch p-value", "Cohen's d"].map(h => <th key={h} className="p-2 text-right">{h}</th>)}<th className="p-2 text-center">Result</th></tr>
               </thead>
               <tbody className="divide-y divide-slate-800/60 font-sans">
                 {data.hypothesis_tests.map((t, idx) => (
@@ -73,7 +64,7 @@ export const CrossSeedCard: React.FC<{ data: CrossSeedResult }> = ({ data }) => 
         <div className="overflow-x-auto">
           <table className="w-full text-left text-xs font-mono">
             <thead className={`bg-slate-950 text-slate-400 border-b border-slate-800 ${th}`}>
-              <tr>{["Variant", "Metric"].map(h => <th key={h} className="p-2">{h}</th>)}<th className="p-2 text-center">N</th>{["Mean ± Std", "Median [IQR]", "Student's t 95% CI", "Bootstrap 95% CI"].map(h => <th key={h} className="p-2 text-right">{h}</th>)}</tr>
+              <tr>{thVM}<th className="p-2 text-center">N</th>{["Mean ± Std", "Median [IQR]", "Student's t 95% CI", "Bootstrap 95% CI"].map(h => <th key={h} className="p-2 text-right">{h}</th>)}</tr>
             </thead>
             <tbody className="divide-y divide-slate-800/60">
               {data.aggregations.map((agg, idx) => (

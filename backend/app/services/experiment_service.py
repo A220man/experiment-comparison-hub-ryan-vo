@@ -11,16 +11,13 @@ from backend.app.models.schemas import (
 
 def log_audit_event(db: Session, email: str, action: str, res_type: str, res_id: str, details: Dict[str, Any], ip: Optional[str] = None) -> AuditLog:
     log = AuditLog(id=f'aud_{uuid.uuid4().hex[:12]}', user_email=email, action=action, resource_type=res_type, resource_id=res_id, details_json=details, ip_address=ip)
-    db.add(log)
-    db.flush()
+    db.add(log); db.flush()
     return log
 
 def create_experiment(db: Session, data: ExperimentCreate, email: str, ip: Optional[str] = None) -> Experiment:
-    exp = Experiment(id=f'exp_{uuid.uuid4().hex[:12]}', name=data.name, description=data.description, domain=data.domain, baseline_variant=data.baseline_variant, created_by=email)
-    db.add(exp)
-    log_audit_event(db, email, 'CREATE_EXPERIMENT', 'experiment', exp.id, {'name': exp.name}, ip)
-    db.commit()
-    db.refresh(exp)
+    exp = Experiment(id=f'exp_{uuid.uuid4().hex[:12]}', **data.model_dump(), created_by=email)
+    db.add(exp); log_audit_event(db, email, 'CREATE_EXPERIMENT', 'experiment', exp.id, {'name': exp.name}, ip)
+    db.commit(); db.refresh(exp)
     return exp
 
 def get_experiment_by_id(db: Session, exp_id: str) -> Optional[Experiment]:
@@ -32,12 +29,11 @@ def list_experiments(db: Session, page: int = 1, page_size: int = 20, search: Op
     return (q.order_by(desc(Experiment.created_at)).offset((page - 1) * page_size).limit(page_size).all(), q.count())
 
 def update_experiment(db: Session, exp: Experiment, data: ExperimentUpdate, email: str, ip: Optional[str] = None) -> Experiment:
-    ch = {f: (getattr(exp, f), getattr(data, f)) for f in ('name', 'description', 'baseline_variant') if getattr(data, f) is not None}
-    for f, (_, v) in ch.items(): setattr(exp, f, v)
+    ch = {f: getattr(data, f) for f in ('name', 'description', 'baseline_variant') if getattr(data, f) is not None}
+    for f, v in ch.items(): setattr(exp, f, v)
     if ch:
         log_audit_event(db, email, 'UPDATE_EXPERIMENT', 'experiment', exp.id, ch, ip)
-        db.commit()
-        db.refresh(exp)
+        db.commit(); db.refresh(exp)
     return exp
 
 def delete_experiment(db: Session, exp: Experiment, email: str, ip: Optional[str] = None) -> None:
@@ -47,11 +43,10 @@ def delete_experiment(db: Session, exp: Experiment, email: str, ip: Optional[str
     db.commit()
 
 def create_run(db: Session, data: RunCreate, email: str, ip: Optional[str] = None) -> Run:
-    run = Run(id=f'run_{uuid.uuid4().hex[:12]}', experiment_id=data.experiment_id, name=data.name, variant_name=data.variant_name, seed=data.seed, hyperparameters=data.hyperparameters, metrics=data.metrics, status=data.status, commit_hash=data.commit_hash, tags=data.tags, notes=data.notes, created_by=email)
+    run = Run(id=f'run_{uuid.uuid4().hex[:12]}', **data.model_dump(), created_by=email)
     db.add(run)
     log_audit_event(db, email, 'CREATE_RUN', 'run', run.id, {'experiment_id': run.experiment_id, 'variant': run.variant_name, 'seed': run.seed}, ip)
-    db.commit()
-    db.refresh(run)
+    db.commit(); db.refresh(run)
     return run
 
 def get_run_by_id(db: Session, run_id: str) -> Optional[Run]:
@@ -66,7 +61,6 @@ def list_runs(db: Session, experiment_id: str, page: int = 1, page_size: int = 5
     if tag: items = [r for r in items if tag in (r.tags or [])]
     return (items, tot)
 
-
 def update_run(db: Session, run: Run, data: RunUpdate, email: str, ip: Optional[str] = None) -> Run:
     ch = {f: getattr(data, f) for f in ('name', 'notes', 'status', 'tags') if getattr(data, f) is not None}
     for f, v in ch.items(): setattr(run, f, v)
@@ -75,8 +69,7 @@ def update_run(db: Session, run: Run, data: RunUpdate, email: str, ip: Optional[
         run.metrics = {**run.metrics, **data.metrics}
     if ch:
         log_audit_event(db, email, 'UPDATE_RUN', 'run', run.id, ch, ip)
-        db.commit()
-        db.refresh(run)
+        db.commit(); db.refresh(run)
     return run
 
 def delete_run(db: Session, run: Run, email: str, ip: Optional[str] = None) -> None:
@@ -86,8 +79,7 @@ def delete_run(db: Session, run: Run, email: str, ip: Optional[str] = None) -> N
     db.commit()
 
 def is_lower_better(m: str) -> bool:
-    s = m.lower()
-    return any(x in s for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))
+    return any(x in m.lower() for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))
 
 def diff_runs(base_run: Run, target_run: Run) -> RunDiffResponse:
     bp, tp = base_run.hyperparameters or {}, target_run.hyperparameters or {}
@@ -103,11 +95,9 @@ def diff_runs(base_run: Run, target_run: Run) -> RunDiffResponse:
     return RunDiffResponse(base_run=RunResponse.model_validate(base_run), target_run=RunResponse.model_validate(target_run), parameter_deltas=p_deltas, metric_deltas=m_deltas)
 
 def create_artifact(db: Session, data: ArtifactCreate, email: str, ip: Optional[str] = None) -> Artifact:
-    art = Artifact(id=f'art_{uuid.uuid4().hex[:12]}', run_id=data.run_id, name=data.name, artifact_type=data.artifact_type, file_path=data.file_path, file_size_bytes=data.file_size_bytes, sha256_hash=data.sha256_hash, verified=True, metadata_json=data.metadata_json)
-    db.add(art)
-    log_audit_event(db, email, 'REGISTER_ARTIFACT', 'artifact', art.id, {'run_id': art.run_id, 'name': art.name, 'sha256': art.sha256_hash}, ip)
-    db.commit()
-    db.refresh(art)
+    art = Artifact(id=f'art_{uuid.uuid4().hex[:12]}', **data.model_dump(), verified=True)
+    db.add(art); log_audit_event(db, email, 'REGISTER_ARTIFACT', 'artifact', art.id, {'run_id': art.run_id, 'name': art.name, 'sha256': art.sha256_hash}, ip)
+    db.commit(); db.refresh(art)
     return art
 
 def list_artifacts_for_run(db: Session, run_id: str) -> List[Artifact]:

@@ -26,7 +26,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditLogs, onNavigateHome 
 
         <div className="flex items-center space-x-4">
           {isAdmin && onOpenAuditLogs && (
-            <button onClick={onOpenAuditLogs} className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 flex items-center gap-1.5 transition-colors">
+            <button onClick={onOpenAuditLogs} className="px-3 py-1.5 text-xs font-medium text-slate-300 hover:text-white bg-slate-800 hover:bg-slate-700 rounded-md border border-slate-700 flex items-center gap-1.5">
               <FileText className="w-3.5 h-3.5 text-slate-400" />Audit Trail
             </button>
           )}
@@ -51,7 +51,7 @@ export const Navbar: React.FC<NavbarProps> = ({ onOpenAuditLogs, onNavigateHome 
                   <span className="text-[10px] uppercase font-bold px-1.5 py-0.2 rounded bg-slate-800 text-slate-300 border border-slate-700">{user.roles[0]}</span>
                 </div>
               </div>
-              <button onClick={logout} title="Logout" className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md transition-colors"><LogOut className="w-4 h-4" /></button>
+              <button onClick={logout} title="Logout" className="p-1.5 text-slate-400 hover:text-red-400 hover:bg-slate-800 rounded-md"><LogOut className="w-4 h-4" /></button>
             </div>
           ) : (
             <div className="text-xs text-slate-400 flex items-center gap-1.5"><User className="w-4 h-4" />Not authenticated</div>

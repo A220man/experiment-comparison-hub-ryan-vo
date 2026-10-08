@@ -25,25 +25,21 @@ def create_experiment(data: ExperimentCreate, request: Request, db: Session=Depe
     ip = request.client.host if request.client else None
     return _to_resp(experiment_service.create_experiment(db, data, user.email, ip), count=0)
 
+def _get_exp(db: Session, exp_id: str):
+    exp = experiment_service.get_experiment_by_id(db, exp_id)
+    if not exp: raise HTTPException(status_code=404, detail=f"Experiment '{exp_id}' not found")
+    return exp
+
 @router.get('/{experiment_id}', response_model=ExperimentResponse)
 def get_experiment(experiment_id: str, db: Session=Depends(get_db), user: UserSession=Depends(require_role(ROLE_VIEWER))):
-    exp = experiment_service.get_experiment_by_id(db, experiment_id)
-    if not exp:
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    return _to_resp(exp)
+    return _to_resp(_get_exp(db, experiment_id))
 
 @router.put('/{experiment_id}', response_model=ExperimentResponse)
 def update_experiment(experiment_id: str, data: ExperimentUpdate, request: Request, db: Session=Depends(get_db), user: UserSession=Depends(require_role(ROLE_ANALYST))):
-    exp = experiment_service.get_experiment_by_id(db, experiment_id)
-    if not exp:
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
     ip = request.client.host if request.client else None
-    return _to_resp(experiment_service.update_experiment(db, exp, data, user.email, ip))
+    return _to_resp(experiment_service.update_experiment(db, _get_exp(db, experiment_id), data, user.email, ip))
 
 @router.delete('/{experiment_id}', status_code=status.HTTP_204_NO_CONTENT)
 def delete_experiment(experiment_id: str, request: Request, db: Session=Depends(get_db), user: UserSession=Depends(require_role(ROLE_ADMIN))):
-    exp = experiment_service.get_experiment_by_id(db, experiment_id)
-    if not exp:
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
     ip = request.client.host if request.client else None
-    experiment_service.delete_experiment(db, exp, user.email, ip)
+    experiment_service.delete_experiment(db, _get_exp(db, experiment_id), user.email, ip)

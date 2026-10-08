@@ -3,9 +3,20 @@ from typing import Optional
 from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+def _get_version() -> str:
+    for loc in ('VERSION', '/app/VERSION', '../VERSION', '../../VERSION'):
+        if os.path.exists(loc):
+            try:
+                with open(loc, 'r', encoding='utf-8') as f:
+                    v = f.read().strip()
+                    if v: return v
+            except Exception:
+                pass
+    return '1.3.0'
+
 class Settings(BaseSettings):
     app_name: str = 'Experiment Comparison Hub'
-    app_version: str = '0.1.0'
+    app_version: str = _get_version()
     environment: str = 'development'
     host: str = '127.0.0.1'
     port: int = 8000
@@ -23,8 +34,8 @@ class Settings(BaseSettings):
     oidc_redirect_uri: str = 'http://127.0.0.1:8000/api/v1/auth/callback'
     llm_api_key: Optional[str] = None
     llm_provider: str = 'openai'
-    llm_model: str = 'qwen3.8-27b'
-    llm_base_url: str = 'https://llm.chris-vo.com/v1'
+    llm_model: str = 'gpt-4o-mini'
+    llm_base_url: str = 'https://api.openai.com/v1'
     llm_timeout_seconds: float = 15.0
     model_config = SettingsConfigDict(env_file='.env', env_file_encoding='utf-8', extra='ignore')
 

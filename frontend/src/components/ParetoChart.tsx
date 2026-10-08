@@ -45,8 +45,9 @@ export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (
           {fPath && <path d={fPath} fill="none" stroke="#10b981" strokeWidth="2" strokeDasharray="2 2" className="opacity-80" />}
           {data.all_points.map(pt => {
             const cx = sx(pt.metrics[ox.metric] ?? 0), cy = sy(pt.metrics[oy.metric] ?? 0);
-            if (pt.is_knee_point) return <g key={pt.run_id} className="cursor-pointer" onClick={() => onSelectRun?.(pt.run_id)} onMouseEnter={() => setHov(pt)} onMouseLeave={() => setHov(null)}><circle cx={cx} cy={cy} r="10" fill="#f59e0b" fillOpacity="0.25" /><circle cx={cx} cy={cy} r="6" fill="#f59e0b" stroke="#fff" strokeWidth="2" /></g>;
-            return <circle key={pt.run_id} cx={cx} cy={cy} r={pt.is_frontier ? 6 : 4} fill={pt.is_frontier ? "#10b981" : "#475569"} stroke={pt.is_frontier ? "#064e3b" : "#334155"} strokeWidth={pt.is_frontier ? 1.5 : 1} className={`cursor-pointer ${pt.is_frontier ? "" : "opacity-70"}`} onClick={() => onSelectRun?.(pt.run_id)} onMouseEnter={() => setHov(pt)} onMouseLeave={() => setHov(null)} />;
+            const ev = { onClick: () => onSelectRun?.(pt.run_id), onMouseEnter: () => setHov(pt), onMouseLeave: () => setHov(null) };
+            if (pt.is_knee_point) return <g key={pt.run_id} className="cursor-pointer" {...ev}><circle cx={cx} cy={cy} r="10" fill="#f59e0b" fillOpacity="0.25" /><circle cx={cx} cy={cy} r="6" fill="#f59e0b" stroke="#fff" strokeWidth="2" /></g>;
+            return <circle key={pt.run_id} cx={cx} cy={cy} r={pt.is_frontier ? 6 : 4} fill={pt.is_frontier ? "#10b981" : "#475569"} stroke={pt.is_frontier ? "#064e3b" : "#334155"} strokeWidth={pt.is_frontier ? 1.5 : 1} className={`cursor-pointer ${pt.is_frontier ? "" : "opacity-70"}`} {...ev} />;
           })}
           <text x={m.l + iw / 2} y={h - 12} textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="600">{ox.metric} ({ox.direction}) →</text>
           <text x={-(m.t + ih / 2)} y={18} transform="rotate(-90)" textAnchor="middle" fill="#94a3b8" fontSize="11" fontWeight="600">{oy.metric} ({oy.direction}) →</text>

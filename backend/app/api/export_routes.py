@@ -16,8 +16,7 @@ def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: 
     if not experiment_service.get_experiment_by_id(db, experiment_id):
         raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
     q = db.query(Run).filter(Run.experiment_id == experiment_id)
-    if variant_name:
-        q = q.filter(Run.variant_name == variant_name)
+    if variant_name: q = q.filter(Run.variant_name == variant_name)
     runs = q.order_by(Run.created_at.desc()).all()
     mk, hk = sorted({k for r in runs for k in (r.metrics or {})}), sorted({k for r in runs for k in (r.hyperparameters or {})})
     buf = io.StringIO()
@@ -34,12 +33,15 @@ def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: 
 class ImportBundleRequest(BaseModel):
     bundle: Dict[str, Any]
 
+def _serialize_art(a):
+    return {'name': a.name, 'artifact_type': a.artifact_type, 'file_path': a.file_path, 'file_size_bytes': a.file_size_bytes, 'sha256_hash': a.sha256_hash, 'metadata_json': a.metadata_json}
+
 @router.get('/export/experiments/{experiment_id}')
 def export_experiment(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
     exp = experiment_service.get_experiment_by_id(db, experiment_id)
     if not exp:
         raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    runs_data = [{'name': r.name, 'variant_name': r.variant_name, 'seed': r.seed, 'hyperparameters': r.hyperparameters, 'metrics': r.metrics, 'status': r.status, 'commit_hash': r.commit_hash, 'tags': r.tags, 'notes': r.notes, 'artifacts': [{'name': a.name, 'artifact_type': a.artifact_type, 'file_path': a.file_path, 'file_size_bytes': a.file_size_bytes, 'sha256_hash': a.sha256_hash, 'metadata_json': a.metadata_json} for a in db.query(Artifact).filter(Artifact.run_id == r.id).all()]} for r in db.query(Run).filter(Run.experiment_id == experiment_id).all()]
+    runs_data = [{'name': r.name, 'variant_name': r.variant_name, 'seed': r.seed, 'hyperparameters': r.hyperparameters, 'metrics': r.metrics, 'status': r.status, 'commit_hash': r.commit_hash, 'tags': r.tags, 'notes': r.notes, 'artifacts': [_serialize_art(a) for a in r.artifacts]} for r in exp.runs]
     return {'version': '1.0', 'format': 'experiment-comparison-hub-bundle', 'experiment': {'name': exp.name, 'description': exp.description, 'domain': exp.domain, 'baseline_variant': exp.baseline_variant}, 'runs': runs_data}
 
 @router.post('/import', status_code=status.HTTP_201_CREATED)
@@ -57,7 +59,7 @@ def import_experiment(req: ImportBundleRequest, request: Request, db: Session = 
         n_runs += 1
         for a in r.get('artifacts', []):
             aid = f'art_{uuid.uuid4().hex[:12]}'
-            db.add(Artifact(id=aid, run_id=rid, name=a.get('name', 'Artifact'), artifact_type=a.get('artifact_type', 'checkpoint'), file_path=a.get('file_path', f'/storage/{aid}.bin'), file_size_bytes=int(a.get('file_size_bytes', 0)), sha256_hash=a.get('sha256_hash', 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855'), verified=True, metadata_json=a.get('metadata_json', {})))
+            db.add(Artifact(id=aid, run_id=rid, name=a.get('name', 'Artifact'), artifact_type=a.get('artifact_type', 'checkpoint'), file_path=a.get('file_path', f'/storage/{aid}.bin'), file_size_bytes=int(a.get('file_size_bytes', 0)), sha256_hash=a.get('sha256_hash', '0' * 64), verified=True, metadata_json=a.get('metadata_json', {})))
             n_arts += 1
     ip = request.client.host if request.client else None
     experiment_service.log_audit_event(db, user.email, 'IMPORT_EXPERIMENT', 'experiment', exp_id, {'imported_runs': n_runs, 'imported_artifacts': n_arts}, ip)
@@ -66,3 +68,17 @@ def import_experiment(req: ImportBundleRequest, request: Request, db: Session = 
     resp = ExperimentResponse.model_validate(exp)
     resp.run_count = n_runs
     return {'status': 'imported', 'experiment': resp, 'runs_imported': n_runs, 'artifacts_imported': n_arts}
+
+@router.get('/export/experiments/{experiment_id}/report.md')
+def export_experiment_report(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
+    exp = experiment_service.get_experiment_by_id(db, experiment_id)
+    if not exp:
+        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
+    runs = db.query(Run).filter(Run.experiment_id == experiment_id).order_by(Run.created_at.asc()).all()
+    artifacts = db.query(Artifact).join(Run).filter(Run.experiment_id == experiment_id).all()
+    mk = sorted({k for r in runs for k in (r.metrics or {})})
+    hdr = f"# Evaluation Report: {exp.name}\n\n**Author**: Ryan Vo <ryandtvo@gmail.com> | AI & Machine Learning\n**ID**: `{exp.id}` | **Baseline**: `{exp.baseline_variant or 'none'}`\n\n## Overview\n{exp.description or 'Pareto optimization and hypothesis testing evaluation.'}\n\n## Runs\n"
+    th = "| Run | Variant | Seed | " + " | ".join(mk) + " |\n| --- | --- | --- | " + " | ".join(["---"] * len(mk)) + " |\n"
+    rows = "".join(f"| `{r.name}` | `{r.variant_name}` | {r.seed} | " + " | ".join(str((r.metrics or {}).get(k, 'N/A')) for k in mk) + " |\n" for r in runs)
+    arts = "\n## Artifacts\n" + "".join(f"- `{a.name}` ({a.artifact_type}): `{a.sha256_hash}` (verified={a.verified})\n" for a in artifacts) if artifacts else ""
+    return Response(content=hdr + th + rows + arts, media_type="text/markdown", headers={"Content-Disposition": f'attachment; filename="report_{exp.id}.md"'})

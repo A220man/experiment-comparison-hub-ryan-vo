@@ -52,13 +52,5 @@ async def compute_advisory_explanation(req: AdvisoryExplanationRequest, db: Sess
     pareto_res = calculate_pareto_frontier(runs, [ObjectiveConfig(metric=o1, direction='maximize'), ObjectiveConfig(metric=o2, direction='minimize')], req.experiment_id)
     eval_m = [m for m in ['accuracy', 'val_loss', 'latency_ms'] if m in metrics] or metrics[:3]
     cross_res = run_cross_seed_analysis(runs=runs, baseline_variant=exp.baseline_variant, metrics_to_eval=eval_m, experiment_id=req.experiment_id)
-    evidence = {
-        'experiment_name': exp.name,
-        'baseline_variant': cross_res.baseline_variant,
-        'total_runs': pareto_res.total_evaluated_runs,
-        'frontier_count': pareto_res.frontier_runs_count,
-        'knee_point': pareto_res.knee_point.run_name if pareto_res.knee_point else None,
-        'hypervolume': pareto_res.hypervolume_indicator,
-        'comparisons': [c.model_dump() for c in cross_res.hypothesis_tests]
-    }
+    evidence = {'experiment_name': exp.name, 'baseline_variant': cross_res.baseline_variant, 'total_runs': pareto_res.total_evaluated_runs, 'frontier_count': pareto_res.frontier_runs_count, 'knee_point': pareto_res.knee_point.run_name if pareto_res.knee_point else None, 'hypervolume': pareto_res.hypervolume_indicator, 'comparisons': [c.model_dump() for c in cross_res.hypothesis_tests]}
     return await generate_advisory_explanation(evidence, req.experiment_id)

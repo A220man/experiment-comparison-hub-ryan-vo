@@ -27,6 +27,7 @@ export const ArtifactRegistry: React.FC<{ artifacts: Artifact[]; runId?: string;
   };
 
   const td = "p-2", inCls = "w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-white";
+  const bV = "px-2 py-0.5 bg-slate-800 text-slate-200 rounded border border-slate-700 text-[11px] font-sans inline-flex items-center gap-1", sp11 = "inline-flex items-center gap-1 text-[11px]";
   const setF = (k: string, v: string) => setForm(p => ({ ...p, [k]: v }));
 
   return (
@@ -54,8 +55,8 @@ export const ArtifactRegistry: React.FC<{ artifacts: Artifact[]; runId?: string;
                   <td className={`${td} text-slate-300`}><span className="px-1.5 py-0.5 rounded bg-slate-800 text-[10px]">{a.artifact_type}</span></td>
                   <td className={`${td} text-slate-400`}>{a.file_size_bytes ? `${Math.round(a.file_size_bytes / 1048576)} MB` : "0 B"}</td>
                   <td className={`${td} text-slate-400 text-[11px] font-mono`}>{a.sha256_hash.slice(0, 8)}...{a.sha256_hash.slice(-6)}</td>
-                  <td className={`${td} text-center`}>{a.verified ? <span className="text-emerald-400 inline-flex items-center gap-1 text-[11px]"><CheckCircle2 className="w-3 h-3" />Verified</span> : <span className="text-rose-400 text-[11px]">Unverified</span>}</td>
-                  <td className={`${td} text-right`}><button onClick={() => handleVerify(a.id)} disabled={verifyingId === a.id} className="px-2 py-0.5 bg-slate-800 text-slate-200 rounded border border-slate-700 text-[11px] font-sans inline-flex items-center gap-1"><RefreshCw className={`w-3 h-3 ${verifyingId === a.id ? "animate-spin" : ""}`} />Verify Checksum</button></td>
+                  <td className={`${td} text-center`}>{a.verified ? <span className={`text-emerald-400 ${sp11}`}><CheckCircle2 className="w-3 h-3" />Verified</span> : <span className="text-rose-400 text-[11px]">Unverified</span>}</td>
+                  <td className={`${td} text-right`}><button onClick={() => handleVerify(a.id)} disabled={verifyingId === a.id} className={bV}><RefreshCw className={`w-3 h-3 ${verifyingId === a.id ? "animate-spin" : ""}`} />Verify Checksum</button></td>
                 </tr>
               ))}
             </tbody>
