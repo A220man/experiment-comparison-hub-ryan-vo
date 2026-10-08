@@ -4,19 +4,16 @@ import { api } from "../api/client";
 import { RunDiffResult } from "../types";
 
 export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; onClose: () => void }> = ({ baseRunId, targetRunId, onClose }) => {
-  const [diff, setDiff] = useState<RunDiffResult | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [diff, setDiff] = useState<RunDiffResult | null>(null), [loading, setLoading] = useState(true), [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
-      try { setDiff(await api.runs.diff(baseRunId, targetRunId)); }
-      catch (e: any) { setError(e.message || "Failed to load diff"); }
-      finally { setLoading(false); }
+      try { setDiff(await api.runs.diff(baseRunId, targetRunId)); } catch (e: any) { setError(e.message || "Failed diff"); } finally { setLoading(false); }
     })();
   }, [baseRunId, targetRunId]);
 
   const td = "p-2", tdR = "p-2 text-right", fn = (v: number | null) => v !== null ? v.toFixed(4) : "—";
+  const fd = (v: number | null, p = "") => v !== null ? `${v > 0 ? "+" : ""}${v.toFixed(p ? 2 : 4)}${p}` : "—";
   const tbl = "w-full text-left text-xs bg-slate-950/40 rounded border border-slate-800";
   const th = "bg-slate-950 text-slate-400 font-mono text-[10px] uppercase border-b border-slate-800";
 
@@ -44,17 +41,15 @@ export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; on
               <div>
                 <h4 className="text-xs font-bold uppercase text-slate-400 font-mono mb-1">Metric Divergence</h4>
                 <table className={tbl}>
-                  <thead className={th}>
-                    <tr><th className={td}>Metric</th>{["Base", "Target", "Delta", "% Change"].map(h => <th key={h} className={tdR}>{h}</th>)}</tr>
-                  </thead>
+                  <thead className={th}><tr><th className={td}>Metric</th>{["Base", "Target", "Delta", "% Change"].map(h => <th key={h} className={tdR}>{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {diff.metric_deltas.map((m, i) => (
                       <tr key={i} className="hover:bg-slate-800/30">
                         <td className={`${td} font-medium text-slate-200`}>{m.metric}</td>
                         <td className={`${tdR} text-slate-400`}>{fn(m.base_value)}</td>
                         <td className={`${tdR} text-slate-200 font-semibold`}>{fn(m.target_value)}</td>
-                        <td className={tdR}><span className={m.improved === true ? "text-emerald-400 font-bold" : m.improved === false ? "text-rose-400 font-bold" : "text-slate-300"}>{m.absolute_delta !== null ? `${m.absolute_delta > 0 ? "+" : ""}${m.absolute_delta.toFixed(4)}` : "—"}</span></td>
-                        <td className={`${tdR} text-slate-300`}>{m.percent_change !== null ? `${m.percent_change > 0 ? "+" : ""}${m.percent_change.toFixed(2)}%` : "—"}</td>
+                        <td className={tdR}><span className={m.improved === true ? "text-emerald-400 font-bold" : m.improved === false ? "text-rose-400 font-bold" : "text-slate-300"}>{fd(m.absolute_delta)}</span></td>
+                        <td className={`${tdR} text-slate-300`}>{fd(m.percent_change, "%")}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -63,9 +58,7 @@ export const RunDiffModal: React.FC<{ baseRunId: string; targetRunId: string; on
               <div>
                 <h4 className="text-xs font-bold uppercase text-slate-400 font-mono mb-1">Hyperparameter Deltas</h4>
                 <table className={tbl}>
-                  <thead className={th}>
-                    <tr>{["Parameter", "Base", "", "Target"].map((h, i) => <th key={i} className={td}>{h}</th>)}</tr>
-                  </thead>
+                  <thead className={th}><tr>{["Parameter", "Base", "", "Target"].map((h, i) => <th key={i} className={td}>{h}</th>)}</tr></thead>
                   <tbody className="divide-y divide-slate-800/60 font-mono">
                     {diff.parameter_deltas.map((p, i) => (
                       <tr key={i} className={p.changed ? "bg-amber-950/20 text-amber-200" : "text-slate-400"}>

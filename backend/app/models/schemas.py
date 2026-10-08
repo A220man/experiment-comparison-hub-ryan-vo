@@ -1,6 +1,7 @@
 import datetime
 from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, field_validator
+_orm = ConfigDict(from_attributes=True)
 
 class PaginatedResponse(BaseModel):
     total: int; page: int; page_size: int; pages: int
@@ -18,7 +19,7 @@ class ExperimentUpdate(BaseModel):
     name: Optional[str] = None; description: Optional[str] = None; baseline_variant: Optional[str] = None
 
 class ExperimentResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _orm
     id: str; name: str; description: Optional[str]; domain: str; baseline_variant: Optional[str]; created_by: str; created_at: datetime.datetime; updated_at: datetime.datetime; run_count: Optional[int] = 0
 
 class ExperimentListResponse(PaginatedResponse):
@@ -30,11 +31,8 @@ class RunCreate(BaseModel):
     @field_validator('metrics')
     @classmethod
     def validate_metrics_numeric(cls, v: Dict[str, Any]) -> Dict[str, float]:
-        cleaned = {}
-        for k, val in v.items():
-            try: cleaned[k] = float(val)
-            except (ValueError, TypeError): raise ValueError(f"Metric '{k}' value must be numeric float, got {val}")
-        return cleaned
+        try: return {k: float(val) for k, val in v.items()}
+        except (ValueError, TypeError) as e: raise ValueError(f"Metric must be float: {e}")
 
 class RunBatchCreate(BaseModel):
     experiment_id: str; runs: List[RunCreate]
@@ -43,7 +41,7 @@ class RunUpdate(BaseModel):
     name: Optional[str] = None; tags: Optional[List[str]] = None; notes: Optional[str] = None; status: Optional[str] = None; metrics: Optional[Dict[str, float]] = None
 
 class RunResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _orm
     id: str; experiment_id: str; name: str; variant_name: str; seed: int; hyperparameters: Dict[str, Any]; metrics: Dict[str, float]; status: str; commit_hash: Optional[str]; tags: List[str]; notes: Optional[str]; created_by: str; created_at: datetime.datetime
 
 class RunListResponse(PaginatedResponse):
@@ -53,7 +51,7 @@ class ArtifactCreate(BaseModel):
     run_id: str; name: str; artifact_type: str; file_path: str; file_size_bytes: int = 0; sha256_hash: str; metadata_json: Dict[str, Any] = {}
 
 class ArtifactResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _orm
     id: str; run_id: str; name: str; artifact_type: str; file_path: str; file_size_bytes: int; sha256_hash: str; verified: bool; metadata_json: Dict[str, Any]; created_at: datetime.datetime
 
 class ArtifactVerifyResponse(BaseModel):
@@ -111,7 +109,7 @@ class AdvisoryExplanationResponse(BaseModel):
     experiment_id: str; provider: str; model: str; is_advisory: bool = True; disclaimer: str; offline_fallback: bool; advisory_text: str; evidence_summary: Dict[str, Any]
 
 class AuditLogResponse(BaseModel):
-    model_config = ConfigDict(from_attributes=True)
+    model_config = _orm
     id: str; user_email: str; action: str; resource_type: str; resource_id: str; details_json: Dict[str, Any]; ip_address: Optional[str]; timestamp: datetime.datetime
 
 class AuditLogListResponse(PaginatedResponse):

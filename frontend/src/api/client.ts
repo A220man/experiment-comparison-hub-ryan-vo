@@ -3,10 +3,13 @@ import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem
 let cachedCsrfToken: string | null = null;
 export function setCsrfToken(t: string | null) { cachedCsrfToken = t; }
 
+let apiBaseUrl = "";
+export function setBaseUrl(url: string) { apiBaseUrl = url; }
+
 async function getCsrfToken(): Promise<string> {
   if (cachedCsrfToken) return cachedCsrfToken;
   try {
-    const res = await fetch("/api/v1/auth/csrf-token", { credentials: "include" });
+    const res = await fetch(`${apiBaseUrl}/api/v1/auth/csrf-token`, { credentials: "include" });
     if (res.ok) cachedCsrfToken = (await res.json()).csrf_token || "";
   } catch {}
   return cachedCsrfToken || "";
@@ -20,7 +23,7 @@ async function req<T>(path: string, opt: RequestInit = {}): Promise<T> {
     const csrf = await getCsrfToken();
     if (csrf) headers.set("X-CSRF-Token", csrf);
   }
-  const res = await fetch(path, { ...opt, headers, credentials: "include" });
+  const res = await fetch(`${apiBaseUrl}${path}`, { ...opt, headers, credentials: "include" });
   if (res.status === 204) return null as unknown as T;
   if (!res.ok) {
     let msg = `Request failed: ${res.status}`;
@@ -68,6 +71,7 @@ export const api = {
   },
   bundles: {
     export: (id: string) => req<any>(`/api/v1/export/experiments/${id}`),
+    exportReport: (id: string) => `/api/v1/export/experiments/${id}/report.md`,
     import: (bundle: any) => req<{ status: string; experiment: Experiment; runs_imported: number; artifacts_imported: number }>("/api/v1/import", { method: "POST", body: JSON.stringify({ bundle }) }),
   },
 };

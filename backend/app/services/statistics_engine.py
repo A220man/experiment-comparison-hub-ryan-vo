@@ -33,6 +33,7 @@ def compute_cohens_d(x: np.ndarray, y: np.ndarray) -> float:
 def aggregate_variant_metrics(variant_runs: List[dict], metrics_to_eval: List[str]) -> List[SeedAggregatedMetric]:
     if not variant_runs: return []
     v_name, seeds, aggs = variant_runs[0]['variant_name'], [r['seed'] for r in variant_runs], []
+    r5 = lambda v: round(float(v), 5)
     for m in metrics_to_eval:
         vals = [float(r['metrics'][m]) for r in variant_runs if m in r.get('metrics', {}) and isinstance(r['metrics'][m], (int, float))]
         if not vals: continue
@@ -43,7 +44,7 @@ def aggregate_variant_metrics(variant_runs: List[dict], metrics_to_eval: List[st
         t_lo, t_hi = compute_t_distribution_ci(arr, 0.95)
         b_lo, b_hi = compute_bootstrap_ci(arr, n_resamples=1500, confidence_level=0.95)
         sem = float(stats.sem(arr)) if n > 1 else 0.0
-        aggs.append(SeedAggregatedMetric(variant_name=v_name, metric=m, sample_size_n=n, mean=round(mean, 5), std_dev=round(s, 5), median=round(float(np.median(arr)), 5), iqr=round(float(q75 - q25), 5), min_value=round(float(np.min(arr)), 5), max_value=round(float(np.max(arr)), 5), standard_error=round(sem, 5), ci_t_distribution=ConfidenceInterval(lower=round(t_lo, 5), upper=round(t_hi, 5), confidence_level=0.95, method='student_t'), ci_bootstrap=ConfidenceInterval(lower=round(b_lo, 5), upper=round(b_hi, 5), confidence_level=0.95, method='empirical_bootstrap'), seeds=seeds))
+        aggs.append(SeedAggregatedMetric(variant_name=v_name, metric=m, sample_size_n=n, mean=r5(mean), std_dev=r5(s), median=r5(np.median(arr)), iqr=r5(q75 - q25), min_value=r5(np.min(arr)), max_value=r5(np.max(arr)), standard_error=r5(sem), ci_t_distribution=ConfidenceInterval(lower=r5(t_lo), upper=r5(t_hi), method='student_t'), ci_bootstrap=ConfidenceInterval(lower=r5(b_lo), upper=r5(b_hi), method='empirical_bootstrap'), seeds=seeds))
     return aggs
 
 def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], metrics_to_eval: List[str], experiment_id: str, alpha: float = 0.05) -> CrossSeedResponse:
@@ -58,8 +59,8 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
     for vn, vr in v_dict.items():
         if len(vr) < 3: warnings.append(f"Variant '{vn}' has only {len(vr)} seed(s); 3–5 recommended.")
         aggs.extend(aggregate_variant_metrics(vr, metrics_to_eval))
-    base_runs = v_dict.get(base, [])
-    tests = []
+    base_runs, tests = v_dict.get(base, []), []
+    r5 = lambda v: round(float(v), 5)
     for t_name, t_runs in v_dict.items():
         if t_name == base: continue
         for m in metrics_to_eval:
@@ -75,11 +76,10 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
             t_stat = float(tres.statistic) if not np.isnan(tres.statistic) else 0.0
             try: mw_res = stats.mannwhitneyu(at, ab, alternative='two-sided'); p_mw = float(mw_res.pvalue) if not np.isnan(mw_res.pvalue) else 1.0
             except Exception: p_mw = 1.0
-            d_val = compute_cohens_d(ab, at)
-            c_val = compute_cliffs_delta(at, ab)
+            d_val, c_val = compute_cohens_d(ab, at), compute_cliffs_delta(at, ab)
             sig = p_w < alpha
             better = delta < 0 if is_lower_better(m) else delta > 0
             lbl = ('Significant Improvement' if better else 'Significant Degradation') if sig else 'Inconclusive / Seed Variance'
             concl = f"{t_name} vs {base} on {m}: {lbl} (p={p_w:.4f}, d={d_val:.2f})"
-            tests.append(HypothesisTestResult(baseline_variant=base, treatment_variant=t_name, metric=m, baseline_mean=round(bm, 5), treatment_mean=round(tm, 5), mean_delta=round(delta, 5), percent_change=round(pct, 3), t_statistic=round(t_stat, 4), p_value_welch=round(p_w, 5), p_value_mann_whitney=round(p_mw, 5), cohens_d=round(d_val, 3), cliffs_delta=round(c_val, 3), is_statistically_significant=sig, significance_label=lbl, conclusion=concl))
+            tests.append(HypothesisTestResult(baseline_variant=base, treatment_variant=t_name, metric=m, baseline_mean=r5(bm), treatment_mean=r5(tm), mean_delta=r5(delta), percent_change=round(pct, 3), t_statistic=round(t_stat, 4), p_value_welch=r5(p_w), p_value_mann_whitney=r5(p_mw), cohens_d=round(d_val, 3), cliffs_delta=round(c_val, 3), is_statistically_significant=sig, significance_label=lbl, conclusion=concl))
     return CrossSeedResponse(experiment_id=experiment_id, baseline_variant=base, variants_evaluated=v_names, metrics_evaluated=metrics_to_eval, aggregations=aggs, hypothesis_tests=tests, sample_size_warnings=warnings)

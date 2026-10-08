@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Cpu, Download, Eye, FileCode, FileSpreadsheet, GitCompare, Layers, Plus, RefreshCw, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Cpu, Download, Eye, FileCode, FileSpreadsheet, FileText, GitCompare, Layers, Plus, RefreshCw, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
 import { api } from "./api/client";
 import { ArtifactRegistry } from "./components/ArtifactRegistry";
 import { CrossSeedCard } from "./components/CrossSeedCard";
@@ -9,10 +9,14 @@ import { RunDiffModal } from "./components/RunDiffModal";
 import { useAuth } from "./context/AuthContext";
 import { AdvisoryExplanationResult, Artifact, AuditLogItem, CrossSeedResult, Experiment, ParetoFrontierResult, Run, SensitivityResult } from "./types";
 
+const bB = "px-2.5 py-1 rounded text-xs flex items-center gap-1", bPri = `${bB} bg-blue-600 hover:bg-blue-500 text-white`, bSec = `${bB} bg-slate-800 hover:bg-slate-700 text-slate-300`, bI = "p-1 text-slate-400 hover:text-white";
+const card = "bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl", sel = "bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white", box = "bg-slate-950/60 p-2 rounded border border-slate-800 font-mono text-[11px]";
+const td = "p-2", tdM = "p-2 font-mono text-[11px]";
+
 const M: React.FC<{ title: string; onClose: () => void; children: React.ReactNode; maxW?: string }> = ({ title, onClose, children, maxW = "max-w-md" }) => (
   <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75">
     <div className={`bg-slate-900 border border-slate-800 rounded-xl ${maxW} w-full p-4 space-y-3 shadow-2xl`}>
-      <div className="flex justify-between items-center"><h3 className="text-sm font-bold text-white">{title}</h3><button onClick={onClose}><X className="w-4 h-4 text-slate-400 hover:text-white" /></button></div>
+      <div className="flex justify-between items-center"><h3 className="text-sm font-bold text-white">{title}</h3><button onClick={onClose} className={bI}><X className="w-4 h-4" /></button></div>
       {children}
     </div>
   </div>
@@ -21,62 +25,31 @@ const M: React.FC<{ title: string; onClose: () => void; children: React.ReactNod
 const Inp: React.FC<{ label: string; [k: string]: any }> = ({ label, ...p }) => (
   <div><label className="block text-slate-300 text-xs mb-1">{label}</label><input className="w-full bg-slate-950 border border-slate-800 rounded px-2.5 py-1 text-xs text-white" {...p} /></div>
 );
-
-const FormBtns: React.FC<{ onCancel: () => void; label?: string }> = ({ onCancel, label = "Save" }) => (
-  <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={onCancel} className={bSec}>Cancel</button><button type="submit" className={bPri}>{label}</button></div>
-);
-
-const bB = "px-2.5 py-1 rounded text-xs flex items-center gap-1";
-const bPri = `${bB} bg-blue-600 hover:bg-blue-500 text-white`;
-const bSec = `${bB} bg-slate-800 hover:bg-slate-700 text-slate-300`;
-const card = "bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl";
-const sel = "bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white";
-const td = "p-2", tdM = "p-2 font-mono text-[11px]", emptyBox = "p-6 text-center bg-slate-900 border border-slate-800 rounded-xl text-slate-400 text-xs";
+const MF = ({ onCancel, txt = "Save", dis }: any) => <div className="flex justify-end gap-2 pt-2"><button type="button" onClick={onCancel} className={bSec}>Cancel</button><button type="submit" disabled={dis} className={bPri}>{txt}</button></div>;
 
 export const App: React.FC = () => {
   const { isAdmin, isAnalyst } = useAuth();
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [selectedExp, setSelectedExp] = useState<Experiment | null>(null);
-  const [loadingExp, setLoadingExp] = useState(false);
-  const [expSearch, setExpSearch] = useState("");
-  const [showExpModal, setShowExpModal] = useState(false);
-  const [showImportModal, setShowImportModal] = useState(false);
-  const [importJson, setImportJson] = useState("");
-  const [importing, setImporting] = useState(false);
-  const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" });
-  const [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts">("runs");
+  const [experiments, setExperiments] = useState<Experiment[]>([]), [selectedExp, setSelectedExp] = useState<Experiment | null>(null), [loadingExp, setLoadingExp] = useState(false), [expSearch, setExpSearch] = useState("");
+  const [showExpModal, setShowExpModal] = useState(false), [showImportModal, setShowImportModal] = useState(false), [importJson, setImportJson] = useState(""), [importing, setImporting] = useState(false);
+  const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" }), [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts">("runs");
 
-  const [runs, setRuns] = useState<Run[]>([]);
-  const [loadingRuns, setLoadingRuns] = useState(false);
-  const [variantFilter, setVariantFilter] = useState("");
-  const [selDiff, setSelDiff] = useState<string[]>([]);
-  const [diffPair, setDiffPair] = useState<{ base: string; target: string } | null>(null);
-  const [showRunModal, setShowRunModal] = useState(false);
-  const [selectedRunDetail, setSelectedRunDetail] = useState<Run | null>(null);
+  const [runs, setRuns] = useState<Run[]>([]), [loadingRuns, setLoadingRuns] = useState(false), [variantFilter, setVariantFilter] = useState(""), [selDiff, setSelDiff] = useState<string[]>([]);
+  const [diffPair, setDiffPair] = useState<{ base: string; target: string } | null>(null), [showRunModal, setShowRunModal] = useState(false), [selectedRunDetail, setSelectedRunDetail] = useState<Run | null>(null);
   const [newRun, setNewRun] = useState({ name: "", variant: "variant_a", seed: 42, metrics: '{"accuracy": 0.88, "latency_ms": 12.4}', hp: '{"lr": 0.001}' });
   const setE = (k: string, v: string) => setNewExp(p => ({ ...p, [k]: v })), setR = (k: string, v: any) => setNewRun(p => ({ ...p, [k]: v }));
+  const bindE = (k: string) => ({ value: (newExp as any)[k], onChange: (e: any) => setE(k, e.target.value) });
+  const bindR = (k: string) => ({ value: (newRun as any)[k], onChange: (e: any) => setR(k, e.target.value) });
 
-  const [obj1Metric, setObj1Metric] = useState("accuracy");
-  const [obj1Dir, setObj1Dir] = useState<"maximize" | "minimize">("maximize");
-  const [obj2Metric, setObj2Metric] = useState("latency_ms");
-  const [obj2Dir, setObj2Dir] = useState<"maximize" | "minimize">("minimize");
-  const [sensMetric, setSensMetric] = useState("accuracy");
+  const [obj1Metric, setObj1Metric] = useState("accuracy"), [obj1Dir, setObj1Dir] = useState<"maximize" | "minimize">("maximize");
+  const [obj2Metric, setObj2Metric] = useState("latency_ms"), [obj2Dir, setObj2Dir] = useState<"maximize" | "minimize">("minimize"), [sensMetric, setSensMetric] = useState("accuracy");
 
-  const [paretoData, setParetoData] = useState<ParetoFrontierResult | null>(null);
-  const [crossSeedData, setCrossSeedData] = useState<CrossSeedResult | null>(null);
-  const [sensitivityData, setSensitivityData] = useState<SensitivityResult | null>(null);
-  const [advisoryData, setAdvisoryData] = useState<AdvisoryExplanationResult | null>(null);
-  const [loadingAnalysis, setLoadingAnalysis] = useState(false);
-  const [analysisError, setAnalysisError] = useState<string | null>(null);
+  const [paretoData, setParetoData] = useState<ParetoFrontierResult | null>(null), [crossSeedData, setCrossSeedData] = useState<CrossSeedResult | null>(null), [sensitivityData, setSensitivityData] = useState<SensitivityResult | null>(null), [advisoryData, setAdvisoryData] = useState<AdvisoryExplanationResult | null>(null);
+  const [loadingAnalysis, setLoadingAnalysis] = useState(false), [analysisError, setAnalysisError] = useState<string | null>(null);
 
-  const [artifacts, setArtifacts] = useState<Artifact[]>([]);
-  const [selectedRunArtifacts, setSelectedRunArtifacts] = useState<string | undefined>();
-  const [showAuditModal, setShowAuditModal] = useState(false);
-  const [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]);
-  const [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
+  const [artifacts, setArtifacts] = useState<Artifact[]>([]), [selectedRunArtifacts, setSelectedRunArtifacts] = useState<string | undefined>(), [showAuditModal, setShowAuditModal] = useState(false), [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]), [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 
-  const availableMetrics = Array.from(new Set(runs.flatMap(r => Object.keys(r.metrics || {}))));
-  const availableVariants = Array.from(new Set(runs.map(r => r.variant_name).filter(Boolean)));
+  const availableMetrics = Array.from(new Set(runs.flatMap(r => Object.keys(r.metrics || {})))), availableVariants = Array.from(new Set(runs.map(r => r.variant_name).filter(Boolean)));
+  const metricOpts = availableMetrics.map(x => <option key={x} value={x}>{x}</option>), variantOpts = availableVariants.map(v => <option key={v} value={v}>{v}</option>);
 
   const fetchExperiments = async () => {
     setLoadingExp(true);
@@ -106,8 +79,7 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     if (selectedExp) {
-      setVariantFilter("");
-      fetchRuns(selectedExp.id, "");
+      setVariantFilter(""); fetchRuns(selectedExp.id, "");
       setParetoData(null); setCrossSeedData(null); setSensitivityData(null); setAdvisoryData(null);
     }
   }, [selectedExp?.id]);
@@ -148,7 +120,11 @@ export const App: React.FC = () => {
     try {
       await api.runs.create({ experiment_id: selectedExp.id, name: newRun.name, variant_name: newRun.variant, seed: Number(newRun.seed), metrics: JSON.parse(newRun.metrics), hyperparameters: JSON.parse(newRun.hp) });
       setShowRunModal(false); setMsg({ type: "success", text: "Run saved" }); fetchRuns(selectedExp.id);
-    } catch (err: any) { setMsg({ type: "error", text: err.message || "Create run failed" }); }
+    } catch (err: any) { setMsg({ type: "error", text: err.message || "Failed" }); }
+  };
+  const handleDeleteRun = async (id: string) => {
+    if (!confirm("Delete run?")) return;
+    try { await api.runs.delete(id); if (selectedExp) fetchRuns(selectedExp.id); } catch {}
   };
 
   const handleImportBundle = async (e: React.FormEvent) => {
@@ -157,8 +133,7 @@ export const App: React.FC = () => {
     setImporting(true);
     try {
       const res = await api.bundles.import(JSON.parse(importJson));
-      setShowImportModal(false); setImportJson("");
-      setMsg({ type: "success", text: `Imported '${res.experiment.name}' (${res.runs_imported} runs)` });
+      setShowImportModal(false); setImportJson(""); setMsg({ type: "success", text: `Imported '${res.experiment.name}' (${res.runs_imported} runs)` });
       await fetchExperiments(); setSelectedExp(res.experiment);
     } catch (err: any) { setMsg({ type: "error", text: err.message || "Import failed" }); }
     finally { setImporting(false); }
@@ -197,7 +172,7 @@ export const App: React.FC = () => {
       {msg && (
         <div className={`px-4 py-2 text-xs flex justify-between border-b ${msg.type === "success" ? "bg-emerald-950/80 border-emerald-800 text-emerald-300" : "bg-rose-950/80 border-rose-800 text-rose-300"}`}>
           <div className="flex items-center gap-2">{msg.type === "success" ? <CheckCircle2 className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}<span>{msg.text}</span></div>
-          <button onClick={() => setMsg(null)}><X className="w-4 h-4" /></button>
+          <button onClick={() => setMsg(null)} className={bI}><X className="w-4 h-4" /></button>
         </div>
       )}
       <div className="flex-1 flex max-w-7xl w-full mx-auto p-4 sm:p-6 gap-6">
@@ -244,14 +219,15 @@ export const App: React.FC = () => {
                   {selectedExp.description && <p className="text-xs text-slate-400 mt-0.5">{selectedExp.description}</p>}
                 </div>
                 <div className="flex gap-2">
-                  <button onClick={() => window.open(`/api/v1/export/runs.csv?experiment_id=${selectedExp.id}${variantFilter ? `&variant_name=${encodeURIComponent(variantFilter)}` : ""}`, "_blank")} className={bSec}><FileSpreadsheet className="w-3.5 h-3.5" />CSV</button>
+                  <button onClick={() => window.open(`/api/v1/export/runs.csv?experiment_id=${selectedExp.id}${variantFilter ? `&variant_name=${encodeURIComponent(variantFilter)}` : ""}`)} className={bSec}><FileSpreadsheet className="w-3.5 h-3.5" />CSV</button>
+                  <button onClick={() => window.open(`/api/v1/export/experiments/${selectedExp.id}/report.md`)} className={bSec}><FileText className="w-3.5 h-3.5" />Report</button>
                   <button onClick={exportBundle} className={bSec}><Download className="w-3.5 h-3.5" />Export</button>
                   {isAdmin && <button onClick={() => handleDeleteExp(selectedExp.id)} className="p-1 bg-rose-950/60 hover:bg-rose-900 border border-rose-800 text-rose-300 rounded"><Trash2 className="w-3.5 h-3.5" /></button>}
                 </div>
               </div>
 
               <div className="flex border-b border-slate-800 gap-2">
-                {([["runs", `Runs (${runs.length})`, Layers], ["pareto", "Pareto Frontier", BarChart2], ["cross_seed", "Cross-Seed Stats", GitCompare], ["sensitivity", "Sensitivity & Advisory", Sparkles], ["artifacts", "Artifacts", FileCode]] as const).map(([k, l, I]) => (
+                {([["runs", `Runs (${runs.length})`, Layers], ["pareto", "Pareto", BarChart2], ["cross_seed", "Cross-Seed", GitCompare], ["sensitivity", "Sensitivity", Sparkles], ["artifacts", "Artifacts", FileCode]] as const).map(([k, l, I]) => (
                   <button key={k} onClick={() => setTab(k as any)} className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 ${tab === k ? "border-blue-500 text-white bg-slate-900/60" : "border-transparent text-slate-400"}`}><I className="w-3.5 h-3.5" />{l}</button>
                 ))}
               </div>
@@ -264,7 +240,7 @@ export const App: React.FC = () => {
                         <span>Variant:</span>
                         <select value={variantFilter} onChange={e => { setVariantFilter(e.target.value); fetchRuns(selectedExp.id, e.target.value); }} className={sel}>
                           <option value="">All Variants ({runs.length})</option>
-                          {availableVariants.map(v => <option key={v} value={v}>{v}</option>)}
+                          {variantOpts}
                         </select>
                       </div>
                       <div className="flex items-center gap-2 text-slate-400">
@@ -287,12 +263,12 @@ export const App: React.FC = () => {
                               <td className={`${td} font-semibold text-white cursor-pointer hover:text-blue-400`} onClick={() => setSelectedRunDetail(r)}>{r.name}</td>
                               <td className={`${td} font-mono text-blue-400`}>{r.variant_name}</td>
                               <td className={`${td} font-mono text-slate-400`}>{r.seed}</td>
-                              <td className={`${tdM} text-slate-300`}>{Object.entries(r.metrics).map(([k, v]) => `${k}:${v.toFixed(3)}`).join(" ")}</td>
+                              <td className={`${tdM} text-slate-300`}>{Object.entries(r.metrics).map(([k, v]) => `${k}:${Number(v).toFixed(3)}`).join(" ")}</td>
                               <td className={`${tdM} text-slate-400`}>{Object.entries(r.hyperparameters).map(([k, v]) => `${k}:${v}`).join(", ")}</td>
                               <td className={`${td} text-right space-x-1`}>
-                                <button title="Inspect Run" onClick={() => setSelectedRunDetail(r)} className="p-1 text-slate-400 hover:text-white"><Eye className="w-3.5 h-3.5" /></button>
-                                <button title="Artifacts" onClick={() => { setSelectedRunArtifacts(r.id); setTab("artifacts"); }} className="p-1 text-slate-400 hover:text-white"><FileCode className="w-3.5 h-3.5" /></button>
-                                {isAnalyst && <button title="Delete Run" onClick={async () => { if (confirm("Delete run?")) { try { await api.runs.delete(r.id); if (selectedExp) fetchRuns(selectedExp.id); } catch {} } }} className="p-1 text-slate-500 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>}
+                                <button title="Inspect Run" onClick={() => setSelectedRunDetail(r)} className={bI}><Eye className="w-3.5 h-3.5" /></button>
+                                <button title="Artifacts" onClick={() => { setSelectedRunArtifacts(r.id); setTab("artifacts"); }} className={bI}><FileCode className="w-3.5 h-3.5" /></button>
+                                {isAnalyst && <button title="Delete Run" onClick={() => handleDeleteRun(r.id)} className="p-1 text-slate-500 hover:text-rose-400"><Trash2 className="w-3.5 h-3.5" /></button>}
                               </td>
                             </tr>
                           ))}
@@ -306,22 +282,20 @@ export const App: React.FC = () => {
               {(tab === "pareto" || tab === "cross_seed") && (
                 <div className="space-y-3">
                   {tab === "pareto" ? (
-                    <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs">
+                    <div className="flex items-center justify-between p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs">
                       <div className="flex items-center gap-2">
-                        {([["X:", obj1Metric, setObj1Metric, obj1Dir, setObj1Dir, "maximize"], ["Y:", obj2Metric, setObj2Metric, obj2Dir, setObj2Dir, "minimize"]] as const).map(([lbl, m, setM, dir, setD, defD]) => (
-                          <React.Fragment key={lbl}>
-                            <span>{lbl}</span><select value={m} onChange={e => setM(e.target.value)} className={sel}>{availableMetrics.map(x => <option key={x} value={x}>{x}</option>)}</select>
-                            <select value={dir} onChange={e => setD(e.target.value as any)} className={sel}><option value={defD}>{defD === "maximize" ? "max" : "min"}</option><option value={defD === "maximize" ? "minimize" : "maximize"}>{defD === "maximize" ? "min" : "max"}</option></select>
-                          </React.Fragment>
-                        ))}
+                        <span>X:</span><select value={obj1Metric} onChange={e => setObj1Metric(e.target.value)} className={sel}>{metricOpts}</select>
+                        <select value={obj1Dir} onChange={e => setObj1Dir(e.target.value as any)} className={sel}><option value="maximize">max</option><option value="minimize">min</option></select>
+                        <span>Y:</span><select value={obj2Metric} onChange={e => setObj2Metric(e.target.value)} className={sel}>{metricOpts}</select>
+                        <select value={obj2Dir} onChange={e => setObj2Dir(e.target.value as any)} className={sel}><option value="minimize">min</option><option value="maximize">max</option></select>
                       </div>
-                      <button onClick={() => runPareto(obj1Metric, obj1Dir, obj2Metric, obj2Dir)} disabled={loadingAnalysis} className={bPri}><RefreshCw className={`w-3.5 h-3.5 ${loadingAnalysis ? "animate-spin" : ""}`} />Recompute</button>
+                      <button onClick={() => runPareto()} disabled={loadingAnalysis} className={bPri}><RefreshCw className={`w-3.5 h-3.5 ${loadingAnalysis ? "animate-spin" : ""}`} />Recompute</button>
                     </div>
                   ) : (
                     <div className="flex justify-end"><button onClick={runCrossSeed} disabled={loadingAnalysis} className={bPri}><RefreshCw className={`w-3.5 h-3.5 ${loadingAnalysis ? "animate-spin" : ""}`} />Recalculate</button></div>
                   )}
-                  {analysisError && <div className="p-3 bg-rose-950/60 border border-rose-800 rounded-lg text-rose-300 text-xs">{analysisError}</div>}
-                  {tab === "pareto" ? (paretoData ? <ParetoChart data={paretoData} onSelectRun={id => { const r = runs.find(x => x.id === id); if (r) setSelectedRunDetail(r); }} /> : <div className={emptyBox}>No Pareto data.</div>) : (crossSeedData ? <CrossSeedCard data={crossSeedData} /> : <div className={emptyBox}>No cross-seed statistics.</div>)}
+                  {analysisError && <div className="p-3 bg-rose-950/60 border border-rose-800 rounded text-rose-300 text-xs">{analysisError}</div>}
+                  {tab === "pareto" ? (paretoData ? <ParetoChart data={paretoData} onSelectRun={id => { const r = runs.find(x => x.id === id); if (r) setSelectedRunDetail(r); }} /> : <div className="p-6 text-center text-slate-500 text-xs">No Pareto data.</div>) : (crossSeedData ? <CrossSeedCard data={crossSeedData} /> : <div className="p-6 text-center text-slate-500 text-xs">No cross-seed statistics.</div>)}
                 </div>
               )}
 
@@ -331,16 +305,16 @@ export const App: React.FC = () => {
                     <div className="flex justify-between items-center">
                       <div><h3 className="text-sm font-semibold text-white">Hyperparameter Sensitivity</h3><p className="text-xs text-slate-400">Spearman correlation & feature importance</p></div>
                       <div className="flex items-center gap-2">
-                        <select value={sensMetric} onChange={e => { setSensMetric(e.target.value); runSensitivity(e.target.value); }} className={sel}>{availableMetrics.map(m => <option key={m} value={m}>{m}</option>)}</select>
+                        <select value={sensMetric} onChange={e => { setSensMetric(e.target.value); runSensitivity(e.target.value); }} className={sel}>{metricOpts}</select>
                         <button onClick={() => runSensitivity(sensMetric)} disabled={loadingAnalysis} className={bSec}><RefreshCw className={`w-3.5 h-3.5 ${loadingAnalysis ? "animate-spin" : ""}`} />Refresh</button>
                       </div>
                     </div>
                     {sensitivityData?.parameters.length ? (
                       <div className="space-y-1.5">
                         {sensitivityData.parameters.map(p => (
-                          <div key={p.parameter} className="p-2.5 bg-slate-950/50 border border-slate-800 rounded flex justify-between text-xs">
-                            <div><span className="font-mono font-bold text-white">{p.parameter}</span><span className="ml-2 text-slate-400">({p.parameter_type})</span><p className="text-[11px] text-slate-400 mt-0.5">{p.summary}</p></div>
-                            <div className="text-right font-mono text-blue-400 font-bold">{(p.importance_score * 100).toFixed(1)}%</div>
+                          <div key={p.parameter} className={`flex justify-between ${box}`}>
+                            <div><span className="font-bold text-white">{p.parameter}</span><span className="ml-2 text-slate-400">({p.parameter_type})</span><p className="text-[11px] text-slate-400 mt-0.5">{p.summary}</p></div>
+                            <div className="text-right text-blue-400 font-bold">{(p.importance_score * 100).toFixed(1)}%</div>
                           </div>
                         ))}
                       </div>
@@ -358,7 +332,7 @@ export const App: React.FC = () => {
                         <div className="p-3 bg-slate-950/70 border border-slate-800 rounded whitespace-pre-wrap text-slate-300">{advisoryData.advisory_text}</div>
                         <div className="flex justify-between text-[11px] text-slate-500 font-mono"><span>Provider: {advisoryData.provider}</span><span>Fallback: {advisoryData.offline_fallback ? "Yes" : "No"}</span></div>
                       </div>
-                    ) : <div className="text-center py-4 text-xs text-slate-500 border border-dashed border-slate-800 rounded">Click "Generate" for advisory explanation.</div>}
+                    ) : <div className="text-center py-4 text-xs text-slate-500 border border-dashed border-slate-800 rounded">Click 'Generate' for advisory explanation.</div>}
                   </div>
                 </div>
               )}
@@ -374,35 +348,19 @@ export const App: React.FC = () => {
       {showExpModal && (
         <M title="New Experiment" onClose={() => setShowExpModal(false)}>
           <form onSubmit={handleCreateExp} className="space-y-2 text-xs">
-            {(["name", "baseline", "desc"] as const).map(k => (
-              <Inp key={k} label={k === "desc" ? "Description" : k === "baseline" ? "Baseline" : "Name"} required={k === "name"} value={newExp[k]} onChange={(e: any) => setE(k, e.target.value)} />
-            ))}
-            <FormBtns onCancel={() => setShowExpModal(false)} label="Create" />
+            <Inp label="Name" required {...bindE("name")} />
+            <Inp label="Baseline Variant" {...bindE("baseline")} />
+            <Inp label="Description" {...bindE("desc")} />
+            <MF onCancel={() => setShowExpModal(false)} txt="Create" />
           </form>
         </M>
       )}
 
       {showImportModal && (
-        <M title="Import Experiment Bundle" onClose={() => setShowImportModal(false)} maxW="max-w-lg">
+        <M title="Import Experiment Bundle" onClose={() => setShowImportModal(false)}>
           <form onSubmit={handleImportBundle} className="space-y-3 text-xs">
-            <p className="text-slate-400 text-[11px]">Upload bundle JSON or paste directly.</p>
-            <div>
-              <label className="block text-slate-300 text-xs mb-1">Upload File (.json)</label>
-              <input type="file" accept=".json,application/json" onChange={e => {
-                const f = e.target.files?.[0];
-                if (f) { const r = new FileReader(); r.onload = ev => setImportJson(ev.target?.result as string || ""); r.readAsText(f); }
-              }} className="block w-full text-xs text-slate-400 file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:bg-slate-800 file:text-slate-200" />
-            </div>
-            <div>
-              <label className="block text-slate-300 text-xs mb-1">JSON Content</label>
-              <textarea rows={5} value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='{"format": "bundle", ...}' className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-[11px] font-mono text-white" />
-            </div>
-            <div className="flex justify-end gap-2 pt-1">
-              <button type="button" onClick={() => setShowImportModal(false)} className={bSec}>Cancel</button>
-              <button type="submit" disabled={importing || !importJson.trim()} className={`${bPri} disabled:opacity-50`}>
-                {importing ? <RefreshCw className="w-3.5 h-3.5 animate-spin" /> : <Upload className="w-3.5 h-3.5" />}Import Bundle
-              </button>
-            </div>
+            <textarea rows={5} value={importJson} onChange={e => setImportJson(e.target.value)} placeholder='{"format": "bundle", ...}' className="w-full bg-slate-950 border border-slate-800 rounded p-2 text-[11px] font-mono text-white" />
+            <MF onCancel={() => setShowImportModal(false)} txt="Import" dis={importing || !importJson.trim()} />
           </form>
         </M>
       )}
@@ -411,45 +369,37 @@ export const App: React.FC = () => {
         <M title="Log Run" onClose={() => setShowRunModal(false)}>
           <form onSubmit={handleCreateRun} className="space-y-2 text-xs">
             <div className="grid grid-cols-2 gap-2">
-              {(["name", "variant"] as const).map(k => <Inp key={k} label={k === "name" ? "Run Name" : "Variant"} required value={newRun[k]} onChange={(e: any) => setR(k, e.target.value)} />)}
+              <Inp label="Run Name" required {...bindR("name")} />
+              <Inp label="Variant" required {...bindR("variant")} />
             </div>
             <Inp label="Seed" type="number" required value={newRun.seed} onChange={(e: any) => setR("seed", Number(e.target.value))} />
-            {(["metrics", "hp"] as const).map(k => <Inp key={k} label={k === "metrics" ? "Metrics (JSON)" : "Hyperparams (JSON)"} required={k === "metrics"} value={newRun[k]} onChange={(e: any) => setR(k, e.target.value)} />)}
-            <FormBtns onCancel={() => setShowRunModal(false)} />
+            <Inp label="Metrics (JSON)" required {...bindR("metrics")} />
+            <Inp label="Hyperparams (JSON)" {...bindR("hp")} />
+            <MF onCancel={() => setShowRunModal(false)} />
           </form>
         </M>
       )}
 
       {selectedRunDetail && (
-        <M title={`Run Detail: ${selectedRunDetail.name}`} onClose={() => setSelectedRunDetail(null)} maxW="max-w-xl">
+        <M title={`Run: ${selectedRunDetail.name}`} onClose={() => setSelectedRunDetail(null)} maxW="max-w-xl">
           <div className="space-y-3 text-xs">
-            <div className="grid grid-cols-2 gap-2 bg-slate-950/60 p-2.5 rounded-lg border border-slate-800 font-mono text-[11px]">
-              {([["Variant", selectedRunDetail.variant_name, "text-blue-400 font-bold"], ["Seed", selectedRunDetail.seed, "text-slate-200"], ["Status", selectedRunDetail.status, "text-emerald-400"], ["Commit", selectedRunDetail.commit_hash || "N/A", "text-slate-400"]] as [string, any, string][]).map(([k, v, c]) => (
-                <div key={k}><span className="text-slate-500">{k}: </span><span className={c}>{v}</span></div>
-              ))}
+            <div className={`grid grid-cols-2 gap-2 ${box}`}>
+              <div><span className="text-slate-500">Variant: </span><span className="text-blue-400 font-bold">{selectedRunDetail.variant_name}</span></div>
+              <div><span className="text-slate-500">Seed: </span><span>{selectedRunDetail.seed}</span></div>
+              <div><span className="text-slate-500">Status: </span><span className="text-emerald-400">{selectedRunDetail.status}</span></div>
+              <div><span className="text-slate-500">Commit: </span><span>{selectedRunDetail.commit_hash || "N/A"}</span></div>
             </div>
-            {selectedRunDetail.tags?.length > 0 && (
-              <div className="flex flex-wrap gap-1 items-center">
-                <span className="text-slate-400 text-[11px]">Tags:</span>
-                {selectedRunDetail.tags.map((tg, i) => <span key={i} className="px-1.5 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">{tg}</span>)}
+            {selectedRunDetail.notes && <p className="text-slate-400 bg-slate-950/40 p-2 rounded border border-slate-800">{selectedRunDetail.notes}</p>}
+            <div>
+              <h4 className="font-semibold text-slate-300 mb-1 text-[11px]">Metrics</h4>
+              <div className={`grid grid-cols-2 gap-1 ${box}`}>
+                {Object.entries(selectedRunDetail.metrics).map(([k, v]) => (
+                  <div key={k} className="flex justify-between p-1 bg-slate-900/60 rounded"><span className="text-slate-400">{k}:</span><span className="text-white font-bold">{typeof v === "number" ? v.toFixed(4) : v}</span></div>
+                ))}
               </div>
-            )}
-            {selectedRunDetail.notes && <p className="text-slate-400 text-xs bg-slate-950/40 p-2 rounded border border-slate-800">{selectedRunDetail.notes}</p>}
-            {([["Metrics", selectedRunDetail.metrics, (v: any) => typeof v === "number" ? v.toFixed(4) : v], ["Hyperparameters", selectedRunDetail.hyperparameters, (v: any) => JSON.stringify(v)]] as const).map(([t, d, fmt]) => (
-              <div key={t}>
-                <h4 className="font-semibold text-slate-300 mb-1 text-[11px] uppercase tracking-wide">{t}</h4>
-                <div className="grid grid-cols-2 gap-1.5 bg-slate-950/50 p-2 rounded border border-slate-800 font-mono text-[11px]">
-                  {Object.entries(d).map(([k, v]) => (
-                    <div key={k} className="flex justify-between p-1 bg-slate-900/60 rounded">
-                      <span className="text-slate-400">{k}:</span>
-                      <span className="text-white font-bold">{fmt(v)}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
+            </div>
             <div className="flex justify-end gap-2 pt-2 border-t border-slate-800">
-              <button onClick={() => { setSelectedRunArtifacts(selectedRunDetail.id); setTab("artifacts"); setSelectedRunDetail(null); }} className={bSec}><FileCode className="w-3.5 h-3.5" />View Artifacts</button>
+              <button onClick={() => { setSelectedRunArtifacts(selectedRunDetail.id); setTab("artifacts"); setSelectedRunDetail(null); }} className={bSec}><FileCode className="w-3.5 h-3.5" />Artifacts</button>
               <button onClick={() => setSelectedRunDetail(null)} className={bPri}>Close</button>
             </div>
           </div>
@@ -460,13 +410,12 @@ export const App: React.FC = () => {
 
       {showAuditModal && (
         <M title="Security Audit Trail" onClose={() => setShowAuditModal(false)} maxW="max-w-2xl">
-          <div className="max-h-[60vh] overflow-y-auto space-y-1.5 font-mono text-xs">
-            {!auditLogs.length ? <div className="text-center py-4 text-slate-500">No audit events recorded.</div> : auditLogs.map(l => (
-              <div key={l.id} className="p-2 bg-slate-950 border border-slate-800 rounded flex justify-between items-center text-[11px]">
-                <span className="text-slate-400">{new Date(l.timestamp).toLocaleTimeString()}</span>
-                <span className="text-blue-400 font-semibold">{l.user_email}</span>
+          <div className="max-h-[60vh] overflow-y-auto space-y-1 font-mono text-[11px]">
+            {auditLogs.map(l => (
+              <div key={l.id} className={`flex justify-between ${box}`}>
+                <span className="text-blue-400">{l.user_email}</span>
                 <span className="text-white font-bold">{l.action}</span>
-                <span className="text-slate-300">{l.resource_type}:{l.resource_id}</span>
+                <span className="text-slate-400">{l.resource_type}:{l.resource_id}</span>
               </div>
             ))}
           </div>
