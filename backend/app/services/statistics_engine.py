@@ -5,9 +5,14 @@ from scipy import stats
 from backend.app.models.schemas import ConfidenceInterval, CrossSeedResponse, HypothesisTestResult, SeedAggregatedMetric
 from backend.app.services.experiment_service import is_lower_better
 
+def r5(v: float) -> float:
+    return round(float(v), 5)
+
 def compute_bootstrap_ci(values: np.ndarray, n_resamples: int = 2000, confidence_level: float = 0.95, seed: int = 42) -> Tuple[float, float]:
     n = len(values)
-    if n < 2: return (float(values[0]) if n == 1 else 0.0, float(values[0]) if n == 1 else 0.0)
+    if n < 2:
+        v0 = float(values[0]) if n == 1 else 0.0
+        return (v0, v0)
     rng = np.random.RandomState(seed)
     res = np.mean(rng.choice(values, size=(n_resamples, n), replace=True), axis=1)
     a = 1.0 - confidence_level
@@ -15,7 +20,9 @@ def compute_bootstrap_ci(values: np.ndarray, n_resamples: int = 2000, confidence
 
 def compute_t_distribution_ci(values: np.ndarray, confidence_level: float = 0.95) -> Tuple[float, float]:
     n = len(values)
-    if n < 2: return (float(values[0]) if n == 1 else 0.0, float(values[0]) if n == 1 else 0.0)
+    if n < 2:
+        v0 = float(values[0]) if n == 1 else 0.0
+        return (v0, v0)
     m = float(np.mean(values))
     margin = stats.t.ppf((1.0 + confidence_level) / 2.0, df=n - 1) * float(stats.sem(values))
     return (m - margin, m + margin)
@@ -33,7 +40,6 @@ def compute_cohens_d(x: np.ndarray, y: np.ndarray) -> float:
 def aggregate_variant_metrics(variant_runs: List[dict], metrics_to_eval: List[str]) -> List[SeedAggregatedMetric]:
     if not variant_runs: return []
     v_name, seeds, aggs = variant_runs[0]['variant_name'], [r['seed'] for r in variant_runs], []
-    r5 = lambda v: round(float(v), 5)
     for m in metrics_to_eval:
         vals = [float(r['metrics'][m]) for r in variant_runs if m in r.get('metrics', {}) and isinstance(r['metrics'][m], (int, float))]
         if not vals: continue
@@ -60,7 +66,6 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
         if len(vr) < 3: warnings.append(f"Variant '{vn}' has only {len(vr)} seed(s); 3–5 recommended.")
         aggs.extend(aggregate_variant_metrics(vr, metrics_to_eval))
     base_runs, tests = v_dict.get(base, []), []
-    r5 = lambda v: round(float(v), 5)
     for t_name, t_runs in v_dict.items():
         if t_name == base: continue
         for m in metrics_to_eval:

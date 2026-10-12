@@ -242,3 +242,44 @@ def test_is_lower_better_ml_metrics():
     assert is_lower_better("bleu_4") is False
     assert is_lower_better("throughput_tokens_per_sec") is False
 
+
+def test_pareto_analysis_with_variant_aggregation_api(analyst_client):
+    """Verify Pareto API with variant aggregation and seed filtering over real HTTP routes."""
+    client, headers = analyst_client
+
+    exp = client.post("/api/v1/experiments", json={"name": "Pareto Agg Exp"}, headers=headers).json()
+    exp_id = exp["id"]
+
+    # Log 3 seeds for baseline, 2 seeds for treatment
+    for s, (acc, lat) in enumerate([(0.80, 15.0), (0.82, 14.0), (0.81, 16.0)], start=1):
+        client.post("/api/v1/runs", json={"experiment_id": exp_id, "name": f"base_{s}", "variant_name": "baseline", "seed": s, "metrics": {"accuracy": acc, "latency_ms": lat}}, headers=headers)
+
+    for s, (acc, lat) in enumerate([(0.91, 10.0), (0.89, 11.0)], start=1):
+        client.post("/api/v1/runs", json={"experiment_id": exp_id, "name": f"treat_{s}", "variant_name": "treatment", "seed": s, "metrics": {"accuracy": acc, "latency_ms": lat}}, headers=headers)
+
+    # Call pareto endpoint with aggregate_by_variant=True
+    pareto_res = client.post(
+        "/api/v1/analysis/pareto",
+        json={
+            "experiment_id": exp_id,
+            "objectives": [
+                {"metric": "accuracy", "direction": "maximize"},
+                {"metric": "latency_ms", "direction": "minimize"},
+            ],
+            "aggregate_by_variant": True,
+            "aggregation_method": "mean",
+        },
+        headers=headers,
+    )
+    assert pareto_res.status_code == 200
+    pdata = pareto_res.json()
+    assert pdata["is_aggregated"] is True
+    assert pdata["aggregation_method"] == "mean"
+    assert pdata["total_evaluated_runs"] == 2
+    # treatment dominates baseline (acc 0.90 > 0.81, lat 10.5 < 15.0)
+    assert pdata["frontier_runs_count"] == 1
+    assert pdata["frontier_points"][0]["variant_name"] == "treatment"
+    assert pdata["frontier_points"][0]["sample_size_n"] == 2
+    assert pdata["frontier_points"][0]["seeds"] == [1, 2]
+
+

@@ -33,15 +33,16 @@ def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: 
 class ImportBundleRequest(BaseModel):
     bundle: Dict[str, Any]
 
-def _serialize_art(a):
-    return {'name': a.name, 'artifact_type': a.artifact_type, 'file_path': a.file_path, 'file_size_bytes': a.file_size_bytes, 'sha256_hash': a.sha256_hash, 'metadata_json': a.metadata_json}
+def _serialize_art(a: Artifact) -> Dict[str, Any]:
+    return {k: getattr(a, k) for k in ('name', 'artifact_type', 'file_path', 'file_size_bytes', 'sha256_hash', 'metadata_json')}
 
 @router.get('/export/experiments/{experiment_id}')
 def export_experiment(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
     exp = experiment_service.get_experiment_by_id(db, experiment_id)
     if not exp:
         raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    runs_data = [{'name': r.name, 'variant_name': r.variant_name, 'seed': r.seed, 'hyperparameters': r.hyperparameters, 'metrics': r.metrics, 'status': r.status, 'commit_hash': r.commit_hash, 'tags': r.tags, 'notes': r.notes, 'artifacts': [_serialize_art(a) for a in r.artifacts]} for r in exp.runs]
+    rf = ('name', 'variant_name', 'seed', 'hyperparameters', 'metrics', 'status', 'commit_hash', 'tags', 'notes')
+    runs_data = [{**{k: getattr(r, k) for k in rf}, 'artifacts': [_serialize_art(a) for a in r.artifacts]} for r in exp.runs]
     return {'version': '1.0', 'format': 'experiment-comparison-hub-bundle', 'experiment': {'name': exp.name, 'description': exp.description, 'domain': exp.domain, 'baseline_variant': exp.baseline_variant}, 'runs': runs_data}
 
 @router.post('/import', status_code=status.HTTP_201_CREATED)
@@ -53,9 +54,10 @@ def import_experiment(req: ImportBundleRequest, request: Request, db: Session = 
     exp = Experiment(id=exp_id, name=info['name'], description=info.get('description'), domain=info.get('domain', 'ai-ml'), baseline_variant=info.get('baseline_variant'), created_by=user.email)
     db.add(exp)
     n_runs, n_arts = 0, 0
+    run_defs = {'name': 'Run', 'variant_name': 'default', 'seed': 42, 'hyperparameters': {}, 'metrics': {}, 'status': 'COMPLETED', 'commit_hash': None, 'tags': [], 'notes': None}
     for r in req.bundle.get('runs', []):
         rid = f'run_{uuid.uuid4().hex[:12]}'
-        db.add(Run(id=rid, experiment_id=exp_id, name=r.get('name', 'Run'), variant_name=r.get('variant_name', 'default'), seed=int(r.get('seed', 42)), hyperparameters=r.get('hyperparameters', {}), metrics=r.get('metrics', {}), status=r.get('status', 'COMPLETED'), commit_hash=r.get('commit_hash'), tags=r.get('tags', []), notes=r.get('notes'), created_by=user.email))
+        db.add(Run(id=rid, experiment_id=exp_id, created_by=user.email, **{k: r.get(k, d) for k, d in run_defs.items()}))
         n_runs += 1
         for a in r.get('artifacts', []):
             aid = f'art_{uuid.uuid4().hex[:12]}'

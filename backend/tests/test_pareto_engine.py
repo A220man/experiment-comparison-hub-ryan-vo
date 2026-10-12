@@ -96,3 +96,55 @@ def test_pareto_empty_and_single_input():
     assert single_res.frontier_runs_count == 1
     assert single_res.knee_point is not None
     assert single_res.knee_point.run_id == "s1"
+
+
+def test_aggregate_runs_by_variant_mean_and_median():
+    """Verify multi-seed runs are correctly grouped and aggregated by variant."""
+    from backend.app.services.pareto_engine import aggregate_runs_by_variant
+
+    runs = [
+        {"id": "r1", "name": "base_s1", "variant_name": "baseline", "seed": 1, "metrics": {"acc": 0.80, "lat": 10.0}},
+        {"id": "r2", "name": "base_s2", "variant_name": "baseline", "seed": 2, "metrics": {"acc": 0.84, "lat": 12.0}},
+        {"id": "r3", "name": "base_s3", "variant_name": "baseline", "seed": 3, "metrics": {"acc": 0.82, "lat": 14.0}},
+        {"id": "r4", "name": "opt_s1", "variant_name": "optimized", "seed": 1, "metrics": {"acc": 0.90, "lat": 8.0}},
+        {"id": "r5", "name": "opt_s2", "variant_name": "optimized", "seed": 2, "metrics": {"acc": 0.92, "lat": 10.0}},
+    ]
+    objectives = [
+        ObjectiveConfig(metric="acc", direction="maximize"),
+        ObjectiveConfig(metric="lat", direction="minimize"),
+    ]
+
+    # Test mean aggregation
+    mean_agg = aggregate_runs_by_variant(runs, objectives, method="mean")
+    assert len(mean_agg) == 2
+    base_agg = next(r for r in mean_agg if r["variant_name"] == "baseline")
+    opt_agg = next(r for r in mean_agg if r["variant_name"] == "optimized")
+
+    assert base_agg["sample_size_n"] == 3
+    assert base_agg["seeds"] == [1, 2, 3]
+    assert abs(base_agg["metrics"]["acc"] - 0.82) < 1e-5
+    assert abs(base_agg["metrics"]["lat"] - 12.0) < 1e-5
+
+    assert opt_agg["sample_size_n"] == 2
+    assert opt_agg["seeds"] == [1, 2]
+    assert abs(opt_agg["metrics"]["acc"] - 0.91) < 1e-5
+    assert abs(opt_agg["metrics"]["lat"] - 9.0) < 1e-5
+
+    # Run Pareto frontier on aggregated points
+    res = calculate_pareto_frontier(mean_agg, objectives, "exp-agg", is_aggregated=True, aggregation_method="mean")
+    assert res.is_aggregated is True
+    assert res.aggregation_method == "mean"
+    assert res.total_evaluated_runs == 2
+    # opt_agg dominates base_agg (acc 0.91 > 0.82, lat 9.0 < 12.0)
+    assert res.frontier_runs_count == 1
+    assert res.frontier_points[0].variant_name == "optimized"
+    assert res.frontier_points[0].sample_size_n == 2
+    assert res.frontier_points[0].seeds == [1, 2]
+    assert res.knee_point is not None
+    assert res.knee_point.variant_name == "optimized"
+
+    # Test median aggregation
+    med_agg = aggregate_runs_by_variant(runs, objectives, method="median")
+    base_med = next(r for r in med_agg if r["variant_name"] == "baseline")
+    assert abs(base_med["metrics"]["acc"] - 0.82) < 1e-5
+    assert abs(base_med["metrics"]["lat"] - 12.0) < 1e-5

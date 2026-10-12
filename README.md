@@ -1,5 +1,8 @@
 # Experiment Comparison Hub | Ryan Vo | AI & Machine Learning
 
+> Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
+
+
 Current version: `1.4.0`.
 
 Experiment Comparison Hub is an empirical experiment tracking and multi-objective comparison platform designed for machine learning researchers, evaluation engineers, and MLOps teams. Machine learning practitioners often struggle to distinguish genuine algorithmic improvements from random seed fluctuations and face conflicting trade-offs—such as accuracy versus inference latency or perplexity versus model memory—without mathematically grounded tools. The Hub solves this by computing non-dominated Pareto frontiers with normalized knee-point detection, running multi-seed hypothesis testing via Welch's two-sample t-tests and empirical bootstrap confidence intervals, ranking hyperparameter sensitivity, cryptographically verifying model artifacts with SHA-256 digests, and generating trade-off advisories grounded strictly in empirical evidence.
@@ -57,6 +60,7 @@ flowchart TD
 - **Non-Dominated Sorting**: Evaluates multi-dimensional objective metrics (e.g., maximize `accuracy`, minimize `latency_ms`) without arbitrary scalarization weights.
 - **Knee Point Compromise**: Identifies the optimal compromise configuration minimizing Euclidean distance to the normalized ideal utopia vector $[1.0, 1.0]$.
 - **Hypervolume Coverage Indicator**: Calculates the multidimensional hypervolume indicator (exact 2D skyline step integration and Monte Carlo integration for 3+ dimensions) to quantify overall frontier dominance.
+- **Multi-Seed Variant Aggregation**: Aggregates multi-seed evaluations by model variant (using mean or median metrics) before non-dominated sorting to evaluate architecture trade-offs free from intra-variant seed noise, reporting sample size $N$ and evaluated seed sets.
 - **Interactive SVG Visualization**: Renders vector-sharp trade-off curves, non-dominated skyline steps, dominated configurations, and knee-point badges.
 
 ### 2. Cross-Seed Statistical Significance & Hypothesis Testing

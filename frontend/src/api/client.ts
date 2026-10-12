@@ -61,7 +61,7 @@ export const api = {
     verify: (id: string) => req<ArtifactVerifyResult>(`/api/v1/artifacts/${id}/verify`, { method: "POST" }),
   },
   analysis: {
-    pareto: (experiment_id: string, objectives: any) => req<ParetoFrontierResult>("/api/v1/analysis/pareto", { method: "POST", body: JSON.stringify({ experiment_id, objectives }) }),
+    pareto: (experiment_id: string, objectives: any, opts: any = {}) => req<ParetoFrontierResult>("/api/v1/analysis/pareto", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
     crossSeed: (experiment_id: string, metrics: string[], baseline_variant?: string) => req<CrossSeedResult>("/api/v1/analysis/cross-seed", { method: "POST", body: JSON.stringify({ experiment_id, metrics, baseline_variant }) }),
     sensitivity: (experiment_id: string, target_metric: string) => req<SensitivityResult>("/api/v1/analysis/sensitivity", { method: "POST", body: JSON.stringify({ experiment_id, target_metric }) }),
     advisory: (experiment_id: string, analysis_type = "comprehensive") => req<AdvisoryExplanationResult>("/api/v1/analysis/advisory-explanation", { method: "POST", body: JSON.stringify({ experiment_id, analysis_type }) }),

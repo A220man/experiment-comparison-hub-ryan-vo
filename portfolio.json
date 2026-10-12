@@ -4,7 +4,7 @@
   "owner": "A220man",
   "email": "ryandtvo@gmail.com",
   "domain": "ai-ml",
-  "summary": "AI/ML experiment tracking and comparison platform calculating multi-objective Pareto frontiers, multi-seed statistical significance, and hyperparameter sensitivity.",
+  "summary": "Work in progress: experiment-comparison-hub-ryan-vo",
   "workflows": [
     "Multi-objective Pareto frontier calculation and trade-off knee point detection across accuracy, latency, and resource metrics",
     "Cross-seed statistical aggregation and Welch's t-test hypothesis testing with 95% confidence intervals to verify significant improvements",
@@ -17,5 +17,6 @@
     "gemini",
     "ollama"
   ],
-  "version": "1.4.0"
+  "version": "1.4.0",
+  "status": "work-in-progress"
 }
