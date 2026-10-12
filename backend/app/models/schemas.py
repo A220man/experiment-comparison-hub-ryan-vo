@@ -70,13 +70,13 @@ class ObjectiveConfig(BaseModel):
     metric: str; direction: Literal['maximize', 'minimize']
 
 class ParetoRequest(BaseModel):
-    experiment_id: str; objectives: List[ObjectiveConfig]; variant_filter: Optional[List[str]] = None
+    experiment_id: str; objectives: List[ObjectiveConfig]; variant_filter: Optional[List[str]] = None; seed_filter: Optional[List[int]] = None; aggregate_by_variant: bool = False; aggregation_method: Literal['mean', 'median'] = 'mean'
 
 class ParetoPoint(BaseModel):
-    run_id: str; run_name: str; variant_name: str; seed: int; metrics: Dict[str, float]; is_frontier: bool; is_knee_point: bool; normalized_distance_to_utopia: Optional[float] = None
+    run_id: str; run_name: str; variant_name: str; seed: int; metrics: Dict[str, float]; is_frontier: bool; is_knee_point: bool; normalized_distance_to_utopia: Optional[float] = None; sample_size_n: Optional[int] = None; seeds: Optional[List[int]] = None
 
 class ParetoFrontierResponse(BaseModel):
-    experiment_id: str; objectives: List[ObjectiveConfig]; all_points: List[ParetoPoint]; frontier_points: List[ParetoPoint]; knee_point: Optional[ParetoPoint]; hypervolume_indicator: float; total_evaluated_runs: int; frontier_runs_count: int; dominated_runs_count: int
+    experiment_id: str; objectives: List[ObjectiveConfig]; all_points: List[ParetoPoint]; frontier_points: List[ParetoPoint]; knee_point: Optional[ParetoPoint]; hypervolume_indicator: float; total_evaluated_runs: int; frontier_runs_count: int; dominated_runs_count: int; is_aggregated: bool = False; aggregation_method: Optional[str] = None
 
 class CrossSeedRequest(BaseModel):
     experiment_id: str; baseline_variant: Optional[str] = None; metrics: List[str] = ['accuracy', 'val_loss', 'latency_ms']; alpha: float = 0.05

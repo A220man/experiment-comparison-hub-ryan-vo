@@ -37,10 +37,8 @@ def update_experiment(db: Session, exp: Experiment, data: ExperimentUpdate, emai
     return exp
 
 def delete_experiment(db: Session, exp: Experiment, email: str, ip: Optional[str] = None) -> None:
-    exp_id = exp.id
-    db.delete(exp)
-    log_audit_event(db, email, 'DELETE_EXPERIMENT', 'experiment', exp_id, {'deleted_id': exp_id}, ip)
-    db.commit()
+    eid = exp.id; db.delete(exp)
+    log_audit_event(db, email, 'DELETE_EXPERIMENT', 'experiment', eid, {'deleted_id': eid}, ip); db.commit()
 
 def create_run(db: Session, data: RunCreate, email: str, ip: Optional[str] = None) -> Run:
     run = Run(id=f'run_{uuid.uuid4().hex[:12]}', **data.model_dump(), created_by=email)
@@ -73,10 +71,8 @@ def update_run(db: Session, run: Run, data: RunUpdate, email: str, ip: Optional[
     return run
 
 def delete_run(db: Session, run: Run, email: str, ip: Optional[str] = None) -> None:
-    rid = run.id
-    db.delete(run)
-    log_audit_event(db, email, 'DELETE_RUN', 'run', rid, {'deleted_id': rid}, ip)
-    db.commit()
+    rid = run.id; db.delete(run)
+    log_audit_event(db, email, 'DELETE_RUN', 'run', rid, {'deleted_id': rid}, ip); db.commit()
 
 def is_lower_better(m: str) -> bool:
     return any(x in m.lower() for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))

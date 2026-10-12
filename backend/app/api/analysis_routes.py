@@ -7,7 +7,7 @@ from backend.app.models.entities import Run
 from backend.app.models.schemas import AdvisoryExplanationRequest, AdvisoryExplanationResponse, CrossSeedRequest, CrossSeedResponse, ObjectiveConfig, ParetoFrontierResponse, ParetoRequest, SensitivityRequest, SensitivityResponse
 from backend.app.services import experiment_service
 from backend.app.services.llm_service import generate_advisory_explanation
-from backend.app.services.pareto_engine import calculate_pareto_frontier
+from backend.app.services.pareto_engine import aggregate_runs_by_variant, calculate_pareto_frontier
 from backend.app.services.sensitivity_engine import analyze_parameter_sensitivity
 from backend.app.services.statistics_engine import run_cross_seed_analysis
 
@@ -29,7 +29,12 @@ def compute_pareto(req: ParetoRequest, db: Session=Depends(get_db), user: UserSe
     runs = _get_experiment_runs_dicts(db, req.experiment_id)
     if req.variant_filter:
         runs = [r for r in runs if r['variant_name'] in req.variant_filter]
-    return calculate_pareto_frontier(runs, req.objectives, req.experiment_id)
+    if req.seed_filter:
+        runs = [r for r in runs if r['seed'] in req.seed_filter]
+    is_agg = req.aggregate_by_variant
+    if is_agg:
+        runs = aggregate_runs_by_variant(runs, req.objectives, req.aggregation_method)
+    return calculate_pareto_frontier(runs, req.objectives, req.experiment_id, is_aggregated=is_agg, aggregation_method=req.aggregation_method if is_agg else None)
 
 @router.post('/cross-seed', response_model=CrossSeedResponse)
 def compute_cross_seed(req: CrossSeedRequest, db: Session=Depends(get_db), user: UserSession=Depends(require_role(ROLE_VIEWER))):

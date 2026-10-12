@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
 ## [1.4.0] - 2026-10-08
 
 ## [1.3.0] - 2026-10-07
@@ -10,6 +14,8 @@
 
 ## Unreleased
 
+- Support multi-seed variant-aggregated Pareto trade-off optimization (`aggregate_by_variant` flag with `mean` and `median` methods) in the Pareto analysis API (`POST /api/v1/analysis/pareto`), computing non-dominated frontiers over model variants rather than raw noisy runs.
+- Add frontend toggle in Pareto chart controls to switch between individual runs and variant-aggregated trade-offs with sample size $N$ metadata and aggregation method badges.
 - Add CSV export endpoint (`GET /api/v1/export/runs.csv`) for tabular metrics and hyperparameter export with optional variant filtering.
 - Support generalized metric optimization direction detection across loss, latency, error, perplexity, memory, and cost metrics.
 - Add experiment bundle import workflow in the frontend with file upload and JSON editor.

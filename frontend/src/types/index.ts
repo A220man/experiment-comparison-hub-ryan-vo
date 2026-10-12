@@ -26,10 +26,10 @@ export interface ObjectiveConfig {
   metric: string; direction: "maximize" | "minimize";
 }
 export interface ParetoPoint {
-  run_id: string; run_name: string; variant_name: string; seed: number; metrics: Record<string, number>; is_frontier: boolean; is_knee_point: boolean; normalized_distance_to_utopia: number | null;
+  run_id: string; run_name: string; variant_name: string; seed: number; metrics: Record<string, number>; is_frontier: boolean; is_knee_point: boolean; normalized_distance_to_utopia: number | null; sample_size_n?: number; seeds?: number[];
 }
 export interface ParetoFrontierResult {
-  experiment_id: string; objectives: ObjectiveConfig[]; all_points: ParetoPoint[]; frontier_points: ParetoPoint[]; knee_point: ParetoPoint | null; hypervolume_indicator: number; total_evaluated_runs: number; frontier_runs_count: number; dominated_runs_count: number;
+  experiment_id: string; objectives: ObjectiveConfig[]; all_points: ParetoPoint[]; frontier_points: ParetoPoint[]; knee_point: ParetoPoint | null; hypervolume_indicator: number; total_evaluated_runs: number; frontier_runs_count: number; dominated_runs_count: number; is_aggregated?: boolean; aggregation_method?: string;
 }
 export interface ConfidenceInterval {
   lower: number; upper: number; confidence_level: number; method: string;

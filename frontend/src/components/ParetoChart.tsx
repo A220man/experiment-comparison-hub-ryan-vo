@@ -20,7 +20,7 @@ export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (
     <div className="bg-slate-900 border border-slate-800 rounded-xl p-5 shadow-xl">
       <div className="flex flex-wrap items-center justify-between gap-4 mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-white flex items-center gap-2">Multi-Objective Pareto Trade-Off Frontier <span className="text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">Non-Dominated Skyline</span></h3>
+          <h3 className="text-sm font-semibold text-white flex items-center gap-2">Multi-Objective Pareto Trade-Off Frontier <span className="text-xs px-2 py-0.5 rounded bg-emerald-950 text-emerald-400 border border-emerald-800 font-mono">{data.is_aggregated ? `Variant-Aggregated (${data.aggregation_method || "mean"})` : "Non-Dominated Skyline"}</span></h3>
           <p className="text-xs text-slate-400 mt-0.5">X: <strong className="text-slate-200">{ox.metric}</strong> ({ox.direction}) vs Y: <strong className="text-slate-200">{oy.metric}</strong> ({oy.direction})</p>
         </div>
         <div className="flex items-center gap-3 text-xs">
@@ -56,7 +56,7 @@ export const ParetoChart: React.FC<{ data: ParetoFrontierResult; onSelectRun?: (
           <div className="absolute top-4 right-4 bg-slate-800/95 border border-slate-700 rounded-lg p-3 shadow-2xl text-xs backdrop-blur max-w-xs pointer-events-none">
             <div className="font-bold text-white mb-1">{hov.is_knee_point ? <span className="text-amber-400">★ Knee Point</span> : hov.is_frontier ? <span className="text-emerald-400">● Pareto Frontier</span> : <span className="text-slate-400">○ Dominated Point</span>}</div>
             <p className="font-semibold text-slate-200">{hov.run_name}</p>
-            <p className="text-slate-400">{hov.variant_name} | Seed: {hov.seed}</p>
+            <p className="text-slate-400">{hov.variant_name} | {hov.sample_size_n ? `N=${hov.sample_size_n} seeds` : `Seed: ${hov.seed}`}</p>
             <div className="mt-2 pt-2 border-t border-slate-700 font-mono text-slate-300">
               {Object.entries(hov.metrics).map(([k, v]) => <div key={k} className="flex justify-between"><span className="text-slate-400">{k}:</span><span>{v.toFixed(4)}</span></div>)}
             </div>

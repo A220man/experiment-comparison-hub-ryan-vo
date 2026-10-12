@@ -1,0 +1,194 @@
+{
+  "schema_version": 1,
+  "current_feature": "multi-metric-ranking-leaderboard",
+  "features": [
+    {
+      "id": "pareto-frontier-optimization",
+      "title": "Multi-Objective Pareto Trade-Off Frontier & Knee-Point Optimization",
+      "status": "done",
+      "acceptance": [
+        "Non-dominated sorting algorithm identifies Pareto optimal points across conflicting objectives",
+        "Normalized knee point compromise detected via Euclidean distance to utopia point",
+        "Exact 2D skyline step and Monte Carlo hypervolume indicator calculated",
+        "Interactive SVG chart displays non-dominated curve, knee highlights, and hover inspection"
+      ],
+      "implementation": [
+        "backend/app/services/pareto_engine.py",
+        "frontend/src/components/ParetoChart.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_pareto_engine.py",
+        "frontend/src/__tests__/dashboard.test.tsx"
+      ]
+    },
+    {
+      "id": "cross-seed-hypothesis-testing",
+      "title": "Cross-Seed Statistical Significance & Welch's Hypothesis Testing",
+      "status": "done",
+      "acceptance": [
+        "Parametric Student's t and non-parametric bootstrap confidence intervals (95% CI)",
+        "Welch's two-sample unequal variance t-test and Mann-Whitney U test against random seed variance",
+        "Effect size quantification with Cohen's d and Cliff's delta",
+        "Statistical power notices alert users when variants have fewer than 3-5 seeds"
+      ],
+      "implementation": [
+        "backend/app/services/statistics_engine.py",
+        "frontend/src/components/CrossSeedCard.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_statistics_engine.py",
+        "backend/tests/test_boundary_conditions.py"
+      ]
+    },
+    {
+      "id": "hyperparameter-sensitivity",
+      "title": "Hyperparameter Sensitivity Correlation & Feature Importance",
+      "status": "done",
+      "acceptance": [
+        "Spearman rank correlation and Pearson correlation rank parameter influence on target metrics",
+        "ANOVA F-statistic evaluates categorical parameter importance",
+        "Summary annotations describe positive, negative, or negligible parameter relationships"
+      ],
+      "implementation": [
+        "backend/app/services/sensitivity_engine.py"
+      ],
+      "tests": [
+        "backend/tests/test_boundary_conditions.py",
+        "backend/tests/test_experiment_workflows.py"
+      ]
+    },
+    {
+      "id": "cryptographic-artifact-registry",
+      "title": "Cryptographic Artifact Registry & SHA-256 Tamper Detection",
+      "status": "done",
+      "acceptance": [
+        "Model checkpoint and artifact registration with SHA-256 digests",
+        "On-disk checksum calculation and tamper detection",
+        "Audit trail records verification attempts and mismatch notices"
+      ],
+      "implementation": [
+        "backend/app/services/experiment_service.py",
+        "backend/app/api/artifact_routes.py",
+        "frontend/src/components/ArtifactRegistry.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_experiment_workflows.py"
+      ]
+    },
+    {
+      "id": "pairwise-run-diff",
+      "title": "Pairwise Run Configuration & Metric Diff Analyzer",
+      "status": "done",
+      "acceptance": [
+        "Side-by-side comparison of hyperparameters and evaluation metrics",
+        "Absolute and percentage delta calculation with direction-aware improvement badges"
+      ],
+      "implementation": [
+        "backend/app/services/experiment_service.py",
+        "frontend/src/components/RunDiffModal.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_experiment_workflows.py"
+      ]
+    },
+    {
+      "id": "bundle-export-import",
+      "title": "Experiment Bundle Export/Import & Tabular CSV/Markdown Reporting",
+      "status": "done",
+      "acceptance": [
+        "Downloadable CSV export of runs and metrics with optional variant filter",
+        "Reproducible JSON bundle export and multi-run import",
+        "Markdown evaluation report generation with table and artifact list"
+      ],
+      "implementation": [
+        "backend/app/api/export_routes.py"
+      ],
+      "tests": [
+        "backend/tests/test_experiment_workflows.py"
+      ]
+    },
+    {
+      "id": "grounded-advisory-synthesis",
+      "title": "Grounded LLM Advisory Synthesis with Deterministic Offline Fallback",
+      "status": "done",
+      "acceptance": [
+        "Evidence-grounded trade-off explanations referencing computed Pareto and Welch stats",
+        "Offline deterministic fallback produces actionable advice without API credentials",
+        "Multi-provider adapter support (OpenAI, Anthropic, Gemini, Ollama) with credential redaction"
+      ],
+      "implementation": [
+        "backend/app/services/llm_service.py"
+      ],
+      "tests": [
+        "backend/tests/test_llm_advisory.py"
+      ]
+    },
+    {
+      "id": "oidc-rbac-security",
+      "title": "OIDC Keycloak Authentication, RBAC Tiers & CSRF Protection",
+      "status": "done",
+      "acceptance": [
+        "OIDC authorization-code flow with PKCE, state, and nonce validation",
+        "Role-Based Access Control enforcing admin, analyst, and viewer roles",
+        "HMAC double-submit CSRF protection on mutating HTTP requests"
+      ],
+      "implementation": [
+        "backend/app/core/auth.py",
+        "backend/app/api/auth_routes.py"
+      ],
+      "tests": [
+        "backend/tests/test_auth.py",
+        "backend/tests/test_http_boundary.py"
+      ]
+    },
+    {
+      "id": "variant-aggregated-pareto",
+      "title": "Multi-Seed Variant-Aggregated Pareto Trade-Off Optimization",
+      "status": "done",
+      "acceptance": [
+        "Pareto analysis API supports aggregate_by_variant flag and aggregation_method ('mean' or 'median')",
+        "Multi-seed runs for each variant are grouped and aggregated into representative variant points",
+        "Non-dominated sorting, knee point detection, and hypervolume calculation operate over variant representatives",
+        "Aggregated Pareto points preserve sample size N and evaluated seed list metadata",
+        "Frontend provides an interactive toggle in Pareto chart controls to switch between raw runs and aggregated variants",
+        "Pareto chart displays variant aggregation badge and sample size details in inspection tooltips"
+      ],
+      "implementation": [
+        "backend/app/services/pareto_engine.py",
+        "backend/app/models/schemas.py",
+        "backend/app/api/analysis_routes.py",
+        "frontend/src/types/index.ts",
+        "frontend/src/api/client.ts",
+        "frontend/src/components/ParetoChart.tsx",
+        "frontend/src/App.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_pareto_engine.py",
+        "backend/tests/test_experiment_workflows.py",
+        "frontend/src/__tests__/dashboard.test.tsx"
+      ]
+    },
+    {
+      "id": "multi-metric-ranking-leaderboard",
+      "title": "Multi-Metric Composite Ranking & Variant Leaderboard",
+      "status": "planned",
+      "acceptance": [
+        "Composite scoring across normalized Pareto objectives and cross-seed significance",
+        "Sortable variant leaderboard ranking table"
+      ],
+      "implementation": [],
+      "tests": []
+    },
+    {
+      "id": "hyperparameter-tuning-recommendations",
+      "title": "Automated Hyperparameter Tuning Recommendations",
+      "status": "planned",
+      "acceptance": [
+        "Search interval recommendations for influential hyperparameters identified in sensitivity analysis",
+        "Boundary suggestions based on knee point parameter configurations"
+      ],
+      "implementation": [],
+      "tests": []
+    }
+  ]
+}

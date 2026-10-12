@@ -132,6 +132,85 @@ describe("Experiment Comparison Hub Frontend", () => {
     expect(screen.getByText("Knee: pruned")).toBeInTheDocument();
   });
 
+  it("renders ParetoChart in variant-aggregated mode with mean badge and seed-count metadata", () => {
+    const aggregatedPareto: ParetoFrontierResult = {
+      experiment_id: "exp-agg",
+      objectives: [
+        { metric: "accuracy", direction: "maximize" },
+        { metric: "latency_ms", direction: "minimize" },
+      ],
+      all_points: [
+        {
+          run_id: "var_baseline",
+          run_name: "baseline (mean, N=3)",
+          variant_name: "baseline",
+          seed: 0,
+          metrics: { accuracy: 0.82, latency_ms: 12.0 },
+          is_frontier: false,
+          is_knee_point: false,
+          normalized_distance_to_utopia: 0.55,
+          sample_size_n: 3,
+          seeds: [1, 2, 3],
+        },
+        {
+          run_id: "var_optimized",
+          run_name: "optimized (mean, N=2)",
+          variant_name: "optimized",
+          seed: 0,
+          metrics: { accuracy: 0.91, latency_ms: 9.0 },
+          is_frontier: true,
+          is_knee_point: true,
+          normalized_distance_to_utopia: 0.12,
+          sample_size_n: 2,
+          seeds: [1, 2],
+        },
+      ],
+      frontier_points: [
+        {
+          run_id: "var_optimized",
+          run_name: "optimized (mean, N=2)",
+          variant_name: "optimized",
+          seed: 0,
+          metrics: { accuracy: 0.91, latency_ms: 9.0 },
+          is_frontier: true,
+          is_knee_point: true,
+          normalized_distance_to_utopia: 0.12,
+          sample_size_n: 2,
+          seeds: [1, 2],
+        },
+      ],
+      knee_point: {
+        run_id: "var_optimized",
+        run_name: "optimized (mean, N=2)",
+        variant_name: "optimized",
+        seed: 0,
+        metrics: { accuracy: 0.91, latency_ms: 9.0 },
+        is_frontier: true,
+        is_knee_point: true,
+        normalized_distance_to_utopia: 0.12,
+        sample_size_n: 2,
+        seeds: [1, 2],
+      },
+      hypervolume_indicator: 0.6321,
+      total_evaluated_runs: 2,
+      frontier_runs_count: 1,
+      dominated_runs_count: 1,
+      is_aggregated: true,
+      aggregation_method: "mean",
+    };
+
+    render(<ParetoChart data={aggregatedPareto} />);
+
+    // Badge shows aggregated mode with method
+    expect(screen.getByText("Variant-Aggregated (mean)")).toBeInTheDocument();
+    // Knee point label shows the variant name
+    expect(screen.getByText("Knee: optimized")).toBeInTheDocument();
+    // Hypervolume indicator displayed
+    expect(screen.getByText("0.6321")).toBeInTheDocument();
+    // Frontier/total count displayed
+    expect(screen.getByText(/1 \/ 2/)).toBeInTheDocument();
+  });
+
   it("renders CrossSeedCard with Welch's t-test significance and power warnings", () => {
     const mockCrossSeed: CrossSeedResult = {
       experiment_id: "exp-1",
