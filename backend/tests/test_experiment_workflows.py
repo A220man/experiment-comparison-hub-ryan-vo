@@ -281,5 +281,73 @@ def test_pareto_analysis_with_variant_aggregation_api(analyst_client):
     assert pdata["frontier_points"][0]["variant_name"] == "treatment"
     assert pdata["frontier_points"][0]["sample_size_n"] == 2
     assert pdata["frontier_points"][0]["seeds"] == [1, 2]
+def test_leaderboard_composite_ranking_api(analyst_client):
+    """Verify multi-metric leaderboard composite ranking over real HTTP routes."""
+    client, headers = analyst_client
+
+    exp = client.post("/api/v1/experiments", json={"name": "Leaderboard Exp", "baseline_variant": "baseline"}, headers=headers).json()
+    exp_id = exp["id"]
+
+    # Baseline: lower accuracy, higher latency
+    for s, (acc, lat) in enumerate([(0.75, 20.0), (0.76, 19.0), (0.74, 21.0)], start=1):
+        client.post("/api/v1/runs", json={"experiment_id": exp_id, "name": f"base_{s}", "variant_name": "baseline", "seed": s, "metrics": {"accuracy": acc, "latency_ms": lat}}, headers=headers)
+
+    # Treatment: higher accuracy, lower latency (clear winner)
+    for s, (acc, lat) in enumerate([(0.90, 8.0), (0.91, 7.5), (0.89, 8.5)], start=1):
+        client.post("/api/v1/runs", json={"experiment_id": exp_id, "name": f"treat_{s}", "variant_name": "treatment", "seed": s, "metrics": {"accuracy": acc, "latency_ms": lat}}, headers=headers)
+
+    # Middle variant: medium accuracy, medium latency
+    for s, (acc, lat) in enumerate([(0.82, 12.0), (0.83, 11.5)], start=1):
+        client.post("/api/v1/runs", json={"experiment_id": exp_id, "name": f"mid_{s}", "variant_name": "middle", "seed": s, "metrics": {"accuracy": acc, "latency_ms": lat}}, headers=headers)
+
+    # Call leaderboard endpoint
+    lb_res = client.post(
+        "/api/v1/analysis/leaderboard",
+        json={
+            "experiment_id": exp_id,
+            "objectives": [
+                {"metric": "accuracy", "direction": "maximize"},
+                {"metric": "latency_ms", "direction": "minimize"},
+            ],
+            "baseline_variant": "baseline",
+            "aggregate_by_variant": True,
+            "aggregation_method": "mean",
+            "weight_pareto": 0.5,
+            "weight_significance": 0.5,
+        },
+        headers=headers,
+    )
+    assert lb_res.status_code == 200
+    ldata = lb_res.json()
+    assert ldata["total_variants"] == 3
+    assert ldata["is_aggregated"] is True
+    assert ldata["aggregation_method"] == "mean"
+    assert ldata["baseline_variant"] == "baseline"
+
+    # Verify ranking: treatment should be rank 1 (best composite score)
+    leaderboard = ldata["leaderboard"]
+    assert leaderboard[0]["rank"] == 1
+    assert leaderboard[0]["variant_name"] == "treatment"
+    assert leaderboard[0]["is_frontier"] is True
+    assert leaderboard[0]["is_knee_point"] is True
+    assert leaderboard[0]["composite_score"] > leaderboard[1]["composite_score"]
+    assert leaderboard[0]["avg_welch_p_value"] < 0.1  # significant improvement
+    assert leaderboard[0]["avg_cohens_d"] > 1.0  # large effect size
+
+    # Baseline should be ranked lower
+    baseline_entry = next(e for e in leaderboard if e["variant_name"] == "baseline")
+    assert baseline_entry["is_baseline"] is True
+    assert baseline_entry["rank"] > 1
+    assert baseline_entry["composite_score"] < leaderboard[0]["composite_score"]
+
+    # Verify all entries have required fields
+    for entry in leaderboard:
+        assert "rank" in entry
+        assert "composite_score" in entry
+        assert "pareto_score" in entry
+        assert "significance_score" in entry
+        assert "metrics" in entry
+        assert "sample_size_n" in entry
+        assert "seeds" in entry
 
 

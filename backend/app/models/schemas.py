@@ -101,6 +101,43 @@ class ParameterSensitivity(BaseModel):
 
 class SensitivityResponse(BaseModel):
     experiment_id: str; target_metric: str; total_runs_analyzed: int; parameters: List[ParameterSensitivity]
+class LeaderboardEntry(BaseModel):
+    rank: int
+    variant_name: str
+    composite_score: float
+    pareto_score: float
+    significance_score: float
+    is_frontier: bool
+    is_knee_point: bool
+    is_baseline: bool
+    metrics: Dict[str, float]
+    sample_size_n: int
+    seeds: List[int]
+    avg_welch_p_value: float
+    avg_cohens_d: float
+    hypervolume_contribution: float
+
+class LeaderboardRequest(BaseModel):
+    experiment_id: str
+    objectives: List[ObjectiveConfig]
+    baseline_variant: Optional[str] = None
+    variant_filter: Optional[List[str]] = None
+    seed_filter: Optional[List[int]] = None
+    aggregate_by_variant: bool = True
+    aggregation_method: Literal['mean', 'median'] = 'mean'
+    weight_pareto: float = 0.5
+    weight_significance: float = 0.5
+
+class LeaderboardResponse(BaseModel):
+    experiment_id: str
+    objectives: List[ObjectiveConfig]
+    baseline_variant: str
+    leaderboard: List[LeaderboardEntry]
+    total_variants: int
+    weight_pareto: float
+    weight_significance: float
+    aggregation_method: Optional[str] = None
+    is_aggregated: bool = False
 
 class AdvisoryExplanationRequest(BaseModel):
     experiment_id: str; analysis_type: Literal['pareto', 'cross_seed', 'comprehensive'] = 'comprehensive'

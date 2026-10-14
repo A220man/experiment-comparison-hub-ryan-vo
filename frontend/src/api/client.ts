@@ -1,4 +1,4 @@
-import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem, CrossSeedResult, Experiment, ParetoFrontierResult, Run, RunDiffResult, SensitivityResult, UserProfile } from "../types";
+import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ObjectiveConfig, ParetoFrontierResult, Run, RunDiffResult, SensitivityResult, UserProfile } from "../types";
 
 let cachedCsrfToken: string | null = null;
 export function setCsrfToken(t: string | null) { cachedCsrfToken = t; }
@@ -61,10 +61,11 @@ export const api = {
     verify: (id: string) => req<ArtifactVerifyResult>(`/api/v1/artifacts/${id}/verify`, { method: "POST" }),
   },
   analysis: {
-    pareto: (experiment_id: string, objectives: any, opts: any = {}) => req<ParetoFrontierResult>("/api/v1/analysis/pareto", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
+    pareto: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => req<ParetoFrontierResult>("/api/v1/analysis/pareto", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
     crossSeed: (experiment_id: string, metrics: string[], baseline_variant?: string) => req<CrossSeedResult>("/api/v1/analysis/cross-seed", { method: "POST", body: JSON.stringify({ experiment_id, metrics, baseline_variant }) }),
     sensitivity: (experiment_id: string, target_metric: string) => req<SensitivityResult>("/api/v1/analysis/sensitivity", { method: "POST", body: JSON.stringify({ experiment_id, target_metric }) }),
     advisory: (experiment_id: string, analysis_type = "comprehensive") => req<AdvisoryExplanationResult>("/api/v1/analysis/advisory-explanation", { method: "POST", body: JSON.stringify({ experiment_id, analysis_type }) }),
+    leaderboard: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => req<LeaderboardResult>("/api/v1/analysis/leaderboard", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
   },
   audit: {
     list: (p = 1, sz = 50) => req<{ items: AuditLogItem[]; total: number; page: number; pages: number }>(`/api/v1/audit-logs?page=${p}&page_size=${sz}`),

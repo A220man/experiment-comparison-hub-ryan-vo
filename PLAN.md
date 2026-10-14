@@ -131,11 +131,15 @@ Tests: `backend/tests/test_pareto_engine.py`, `backend/tests/test_experiment_wor
 
 ### multi-metric-ranking-leaderboard — Multi-Metric Composite Ranking & Variant Leaderboard
 
-Status: planned
+Status: done
 
 Acceptance:
 - Composite scoring across normalized Pareto objectives and cross-seed significance
 - Sortable variant leaderboard ranking table
+
+Implementation: `backend/app/services/leaderboard_engine.py`, `backend/app/models/schemas.py`, `backend/app/api/analysis_routes.py`, `frontend/src/types/index.ts`, `frontend/src/api/client.ts`, `frontend/src/components/Leaderboard.tsx`, `frontend/src/App.tsx`
+
+Tests: `backend/tests/test_experiment_workflows.py::test_leaderboard_composite_ranking_api`
 
 ### hyperparameter-tuning-recommendations — Automated Hyperparameter Tuning Recommendations
 

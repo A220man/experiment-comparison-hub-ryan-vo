@@ -4,9 +4,22 @@ from sqlalchemy.orm import Session
 from backend.app.core.auth import ROLE_VIEWER, UserSession, require_role
 from backend.app.core.database import get_db
 from backend.app.models.entities import Run
-from backend.app.models.schemas import AdvisoryExplanationRequest, AdvisoryExplanationResponse, CrossSeedRequest, CrossSeedResponse, ObjectiveConfig, ParetoFrontierResponse, ParetoRequest, SensitivityRequest, SensitivityResponse
+from backend.app.models.schemas import (
+    AdvisoryExplanationRequest,
+    AdvisoryExplanationResponse,
+    CrossSeedRequest,
+    CrossSeedResponse,
+    LeaderboardRequest,
+    LeaderboardResponse,
+    ObjectiveConfig,
+    ParetoFrontierResponse,
+    ParetoRequest,
+    SensitivityRequest,
+    SensitivityResponse,
+)
 from backend.app.services import experiment_service
 from backend.app.services.llm_service import generate_advisory_explanation
+from backend.app.services.leaderboard_engine import compute_variant_leaderboard
 from backend.app.services.pareto_engine import aggregate_runs_by_variant, calculate_pareto_frontier
 from backend.app.services.sensitivity_engine import analyze_parameter_sensitivity
 from backend.app.services.statistics_engine import run_cross_seed_analysis
@@ -58,4 +71,21 @@ async def compute_advisory_explanation(req: AdvisoryExplanationRequest, db: Sess
     eval_m = [m for m in ['accuracy', 'val_loss', 'latency_ms'] if m in metrics] or metrics[:3]
     cross_res = run_cross_seed_analysis(runs=runs, baseline_variant=exp.baseline_variant, metrics_to_eval=eval_m, experiment_id=req.experiment_id)
     evidence = {'experiment_name': exp.name, 'baseline_variant': cross_res.baseline_variant, 'total_runs': pareto_res.total_evaluated_runs, 'frontier_count': pareto_res.frontier_runs_count, 'knee_point': pareto_res.knee_point.run_name if pareto_res.knee_point else None, 'hypervolume': pareto_res.hypervolume_indicator, 'comparisons': [c.model_dump() for c in cross_res.hypothesis_tests]}
-    return await generate_advisory_explanation(evidence, req.experiment_id)
+@router.post('/leaderboard', response_model=LeaderboardResponse)
+def compute_leaderboard(req: LeaderboardRequest, db: Session=Depends(get_db), user: UserSession=Depends(require_role(ROLE_VIEWER))):
+    _get_valid_experiment(db, req.experiment_id)
+    runs = _get_experiment_runs_dicts(db, req.experiment_id)
+    if req.variant_filter:
+        runs = [r for r in runs if r['variant_name'] in req.variant_filter]
+    if req.seed_filter:
+        runs = [r for r in runs if r['seed'] in req.seed_filter]
+    return compute_variant_leaderboard(
+        runs_data=runs,
+        objectives=req.objectives,
+        baseline_variant=req.baseline_variant,
+        experiment_id=req.experiment_id,
+        aggregate_by_variant=req.aggregate_by_variant,
+        aggregation_method=req.aggregation_method,
+        weight_pareto=req.weight_pareto,
+        weight_significance=req.weight_significance,
+    )
