@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.6.0 — work-in-progress checkpoint
+
+Partial code published for continued development. Known issues: STATUS.md.
+
+## 1.5.0 — 2026-10-14
+
+### Added
+- **Multi-Metric Composite Ranking & Variant Leaderboard**:
+  - Composite scoring combining normalized Pareto objective scores (across multiple conflicting metrics) with cross-seed statistical significance (Welch's t-test p-values and Cohen's d effect sizes).
+  - Configurable weighting between Pareto and significance components (default 50/50).
+  - Sortable variant leaderboard ranking table with rank, composite score breakdown, Pareto frontier/knee indicators, metric values, sample sizes, p-values, and effect sizes.
+  - Support for both raw runs and variant-aggregated modes (mean/median) matching Pareto chart controls.
+  - Backend engine: `backend/app/services/leaderboard_engine.py` with deterministic algorithm.
+  - API endpoint: `POST /api/v1/analysis/leaderboard` with `LeaderboardRequest`/`LeaderboardResponse` schemas.
+  - Frontend: `Leaderboard` component integrated as new "Leaderboard" tab alongside Pareto, Cross-Seed, Sensitivity, and Artifacts.
+  - Full test coverage: `backend/tests/test_experiment_workflows.py::test_leaderboard_composite_ranking_api`.
+
 ## 1.5.0 — work-in-progress checkpoint
 
 Partial code published for continued development. Known issues: STATUS.md.

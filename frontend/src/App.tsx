@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from "react";
-import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Cpu, Download, Eye, FileCode, FileSpreadsheet, FileText, GitCompare, Layers, Plus, RefreshCw, Search, Sparkles, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, BarChart2, CheckCircle2, ChevronRight, Cpu, Download, Eye, FileCode, FileSpreadsheet, FileText, GitCompare, Layers, Plus, RefreshCw, Search, Sparkles, Trash2, Trophy, Upload, X } from "lucide-react";
 import { api } from "./api/client";
 import { ArtifactRegistry } from "./components/ArtifactRegistry";
 import { CrossSeedCard } from "./components/CrossSeedCard";
+import { Leaderboard } from "./components/Leaderboard";
 import { Navbar } from "./components/Navbar";
 import { ParetoChart } from "./components/ParetoChart";
 import { RunDiffModal } from "./components/RunDiffModal";
 import { useAuth } from "./context/AuthContext";
-import { AdvisoryExplanationResult, Artifact, AuditLogItem, CrossSeedResult, Experiment, ParetoFrontierResult, Run, SensitivityResult } from "./types";
+import { AdvisoryExplanationResult, Artifact, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ParetoFrontierResult, Run, SensitivityResult } from "./types";
 
 const bB = "px-2.5 py-1 rounded text-xs flex items-center gap-1";
 const bPri = `${bB} bg-blue-600 hover:bg-blue-500 text-white`;
@@ -39,7 +40,7 @@ export const App: React.FC = () => {
   const { isAdmin, isAnalyst } = useAuth();
   const [experiments, setExperiments] = useState<Experiment[]>([]), [selectedExp, setSelectedExp] = useState<Experiment | null>(null), [loadingExp, setLoadingExp] = useState(false), [expSearch, setExpSearch] = useState("");
   const [showExpModal, setShowExpModal] = useState(false), [showImportModal, setShowImportModal] = useState(false), [importJson, setImportJson] = useState(""), [importing, setImporting] = useState(false);
-  const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" }), [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts">("runs");
+  const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" }), [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts" | "leaderboard">("runs");
 
   const [runs, setRuns] = useState<Run[]>([]), [loadingRuns, setLoadingRuns] = useState(false), [variantFilter, setVariantFilter] = useState(""), [selDiff, setSelDiff] = useState<string[]>([]);
   const [diffPair, setDiffPair] = useState<{ base: string; target: string } | null>(null), [showRunModal, setShowRunModal] = useState(false), [selectedRunDetail, setSelectedRunDetail] = useState<Run | null>(null);
@@ -52,7 +53,7 @@ export const App: React.FC = () => {
   const [obj2Metric, setObj2Metric] = useState("latency_ms"), [obj2Dir, setObj2Dir] = useState<"maximize" | "minimize">("minimize"), [sensMetric, setSensMetric] = useState("accuracy");
   const [paretoAggregate, setParetoAggregate] = useState(false);
 
-  const [paretoData, setParetoData] = useState<ParetoFrontierResult | null>(null), [crossSeedData, setCrossSeedData] = useState<CrossSeedResult | null>(null), [sensitivityData, setSensitivityData] = useState<SensitivityResult | null>(null), [advisoryData, setAdvisoryData] = useState<AdvisoryExplanationResult | null>(null);
+  const [paretoData, setParetoData] = useState<ParetoFrontierResult | null>(null), [crossSeedData, setCrossSeedData] = useState<CrossSeedResult | null>(null), [sensitivityData, setSensitivityData] = useState<SensitivityResult | null>(null), [advisoryData, setAdvisoryData] = useState<AdvisoryExplanationResult | null>(null), [leaderboardData, setLeaderboardData] = useState<LeaderboardResult | null>(null);
   const [loadingAnalysis, setLoadingAnalysis] = useState(false), [analysisError, setAnalysisError] = useState<string | null>(null);
 
   const [artifacts, setArtifacts] = useState<Artifact[]>([]), [selectedRunArtifacts, setSelectedRunArtifacts] = useState<string | undefined>(), [showAuditModal, setShowAuditModal] = useState(false), [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]), [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
@@ -106,6 +107,7 @@ export const App: React.FC = () => {
   else if (tab === "pareto" && selectedExp && runs.length && !paretoData) runPareto();
   else if (tab === "cross_seed" && selectedExp && runs.length && !crossSeedData) runCrossSeed();
   else if (tab === "sensitivity" && selectedExp && runs.length && !sensitivityData) runSensitivity();
+  else if (tab === "leaderboard" && selectedExp && runs.length && !leaderboardData) runLeaderboard();
   }, [tab, selectedExp?.id, runs.length]);
 
   const handleCreateExp = async (e: React.FormEvent) => {
@@ -165,6 +167,16 @@ export const App: React.FC = () => {
   const runCrossSeed = () => doAnalysis(async () => setCrossSeedData(await api.analysis.crossSeed(selectedExp!.id, availableMetrics.length ? availableMetrics : ["accuracy", "latency_ms"], selectedExp!.baseline_variant || undefined)));
   const runSensitivity = (target = sensMetric) => doAnalysis(async () => setSensitivityData(await api.analysis.sensitivity(selectedExp!.id, target || availableMetrics[0] || "accuracy")));
   const runAdvisory = () => doAnalysis(async () => setAdvisoryData(await api.analysis.advisory(selectedExp!.id, "comprehensive")));
+  const runLeaderboard = () => doAnalysis(async () => setLeaderboardData(await api.analysis.leaderboard(selectedExp!.id, [
+    { metric: obj1Metric, direction: obj1Dir },
+    { metric: obj2Metric, direction: obj2Dir },
+  ], {
+    baseline_variant: selectedExp!.baseline_variant,
+    aggregate_by_variant: paretoAggregate,
+    aggregation_method: "mean",
+    weight_pareto: 0.5,
+    weight_significance: 0.5,
+  })));
 
   const exportBundle = async () => {
   if (!selectedExp) return;
@@ -235,8 +247,8 @@ export const App: React.FC = () => {
         </div>
        </div>
 
-       <div className="flex border-b border-slate-800 gap-2">
-        {([["runs", `Runs (${runs.length})`, Layers], ["pareto", "Pareto", BarChart2], ["cross_seed", "Cross-Seed", GitCompare], ["sensitivity", "Sensitivity", Sparkles], ["artifacts", "Artifacts", FileCode]] as const).map(([k, l, I]) => (
+      <div className="flex border-b border-slate-800 gap-2">
+        {([["runs", `Runs (${runs.length})`, Layers], ["pareto", "Pareto", BarChart2], ["cross_seed", "Cross-Seed", GitCompare], ["sensitivity", "Sensitivity", Sparkles], ["leaderboard", "Leaderboard", Trophy], ["artifacts", "Artifacts", FileCode]] as const).map(([k, l, I]) => (
          <button key={k} onClick={() => setTab(k as any)} className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 ${tab === k ? "border-blue-500 text-white bg-slate-900/60" : "border-transparent text-slate-400"}`}><I className="w-3.5 h-3.5" />{l}</button>
         ))}
        </div>
@@ -346,6 +358,22 @@ export const App: React.FC = () => {
          </div>
         </div>
        )}
+      {tab === "leaderboard" && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 p-2.5 bg-slate-900 border border-slate-800 rounded-xl text-xs">
+            <div className="flex flex-wrap items-center gap-2">
+              <span>X:</span><select value={obj1Metric} onChange={e => { setObj1Metric(e.target.value); runLeaderboard(); }} className={sel}>{metricOpts}</select>
+              <select value={obj1Dir} onChange={e => { setObj1Dir(e.target.value as any); runLeaderboard(); }} className={sel}><option value="maximize">max</option><option value="minimize">min</option></select>
+              <span>Y:</span><select value={obj2Metric} onChange={e => { setObj2Metric(e.target.value); runLeaderboard(); }} className={sel}>{metricOpts}</select>
+              <select value={obj2Dir} onChange={e => { setObj2Dir(e.target.value as any); runLeaderboard(); }} className={sel}><option value="minimize">min</option><option value="maximize">max</option></select>
+              <button onClick={() => { const next = !paretoAggregate; setParetoAggregate(next); runLeaderboard(); }} className={`px-2 py-1 rounded text-xs border font-medium ${paretoAggregate ? "bg-emerald-950 border-emerald-700 text-emerald-300" : "bg-slate-800 border-slate-700 text-slate-300 hover:text-white"}`}>{paretoAggregate ? "✓ Aggregated (Mean)" : "Aggregate by Variant"}</button>
+            </div>
+            <button onClick={runLeaderboard} disabled={loadingAnalysis} className={bPri}><RefreshCw className={`w-3.5 h-3.5 ${loadingAnalysis ? "animate-spin" : ""}`} />Recompute</button>
+          </div>
+          {analysisError && <div className="p-3 bg-rose-950/60 border border-rose-800 rounded text-rose-300 text-xs">{analysisError}</div>}
+          {leaderboardData ? <Leaderboard data={leaderboardData} /> : <div className="p-6 text-center text-slate-500 text-xs">No leaderboard data. Click Recompute to generate.</div>}
+        </div>
+      )}
 
        {tab === "artifacts" && (
         <ArtifactRegistry artifacts={artifacts} runId={selectedRunArtifacts || runs[0]?.id} onRefresh={() => fetchArtifacts(selectedRunArtifacts || runs[0]?.id)} />

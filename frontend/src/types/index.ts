@@ -55,3 +55,30 @@ export interface AdvisoryExplanationResult {
 export interface AuditLogItem {
   id: string; user_email: string; action: string; resource_type: string; resource_id: string; details_json: Record<string, any>; ip_address: string | null; timestamp: string;
 }
+export interface LeaderboardEntry {
+  rank: number;
+  variant_name: string;
+  composite_score: number;
+  pareto_score: number;
+  significance_score: number;
+  is_frontier: boolean;
+  is_knee_point: boolean;
+  is_baseline: boolean;
+  metrics: Record<string, number>;
+  sample_size_n: number;
+  seeds: number[];
+  avg_welch_p_value: number;
+  avg_cohens_d: number;
+  hypervolume_contribution: number;
+}
+export interface LeaderboardResult {
+  experiment_id: string;
+  objectives: ObjectiveConfig[];
+  baseline_variant: string;
+  leaderboard: LeaderboardEntry[];
+  total_variants: number;
+  weight_pareto: number;
+  weight_significance: number;
+  aggregation_method?: string;
+  is_aggregated: boolean;
+}
