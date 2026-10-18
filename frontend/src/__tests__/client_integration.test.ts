@@ -72,6 +72,30 @@ describe("Typed Frontend Client - Real HTTP Boundary Integration", () => {
         return;
       }
 
+      if (req.url?.startsWith("/api/v1/runs/") && req.method === "PUT") {
+        let body = "";
+        req.on("data", chunk => { body += chunk; });
+        req.on("end", () => {
+          const payload = JSON.parse(body);
+          res.writeHead(200, { "Content-Type": "application/json" });
+          res.end(JSON.stringify({
+            id: "run_annotated_1",
+            experiment_id: "exp_http_777",
+            name: "test_run",
+            variant_name: "base",
+            seed: 42,
+            hyperparameters: {},
+            metrics: { accuracy: 0.9 },
+            status: "COMPLETED",
+            tags: payload.tags || [],
+            notes: payload.notes || null,
+            created_by: "ryandtvo@gmail.com",
+            created_at: new Date().toISOString(),
+          }));
+        });
+        return;
+      }
+
       res.writeHead(404, { "Content-Type": "application/json" });
       res.end(JSON.stringify({ detail: "Not found" }));
     });
@@ -112,5 +136,17 @@ describe("Typed Frontend Client - Real HTTP Boundary Integration", () => {
     expect(list.items).toHaveLength(1);
     expect(list.items[0].id).toBe("exp_http_777");
     expect(list.items[0].domain).toBe("ai-ml");
+  });
+
+  it("crosses real HTTP boundary to update run annotations (tags and notes)", async () => {
+    const updated = await api.runs.update("run_annotated_1", {
+      tags: ["production", "fp16"],
+      notes: "Quantized model weights verified",
+    });
+
+    expect(updated).toBeDefined();
+    expect(updated.id).toBe("run_annotated_1");
+    expect(updated.tags).toEqual(["production", "fp16"]);
+    expect(updated.notes).toBe("Quantized model weights verified");
   });
 });

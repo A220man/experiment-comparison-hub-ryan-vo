@@ -9,13 +9,15 @@ from backend.app.models.schemas import (
     MetricDelta, ParameterDelta, RunCreate, RunDiffResponse, RunResponse, RunUpdate,
 )
 
+uid = lambda p: f'{p}_{uuid.uuid4().hex[:12]}'
+
 def log_audit_event(db: Session, email: str, action: str, res_type: str, res_id: str, details: Dict[str, Any], ip: Optional[str] = None) -> AuditLog:
-    log = AuditLog(id=f'aud_{uuid.uuid4().hex[:12]}', user_email=email, action=action, resource_type=res_type, resource_id=res_id, details_json=details, ip_address=ip)
+    log = AuditLog(id=uid('aud'), user_email=email, action=action, resource_type=res_type, resource_id=res_id, details_json=details, ip_address=ip)
     db.add(log); db.flush()
     return log
 
 def create_experiment(db: Session, data: ExperimentCreate, email: str, ip: Optional[str] = None) -> Experiment:
-    exp = Experiment(id=f'exp_{uuid.uuid4().hex[:12]}', **data.model_dump(), created_by=email)
+    exp = Experiment(id=uid('exp'), **data.model_dump(), created_by=email)
     db.add(exp); log_audit_event(db, email, 'CREATE_EXPERIMENT', 'experiment', exp.id, {'name': exp.name}, ip)
     db.commit(); db.refresh(exp)
     return exp
@@ -31,9 +33,7 @@ def list_experiments(db: Session, page: int = 1, page_size: int = 20, search: Op
 def update_experiment(db: Session, exp: Experiment, data: ExperimentUpdate, email: str, ip: Optional[str] = None) -> Experiment:
     ch = {f: getattr(data, f) for f in ('name', 'description', 'baseline_variant') if getattr(data, f) is not None}
     for f, v in ch.items(): setattr(exp, f, v)
-    if ch:
-        log_audit_event(db, email, 'UPDATE_EXPERIMENT', 'experiment', exp.id, ch, ip)
-        db.commit(); db.refresh(exp)
+    if ch: log_audit_event(db, email, 'UPDATE_EXPERIMENT', 'experiment', exp.id, ch, ip); db.commit(); db.refresh(exp)
     return exp
 
 def delete_experiment(db: Session, exp: Experiment, email: str, ip: Optional[str] = None) -> None:
@@ -41,7 +41,7 @@ def delete_experiment(db: Session, exp: Experiment, email: str, ip: Optional[str
     log_audit_event(db, email, 'DELETE_EXPERIMENT', 'experiment', eid, {'deleted_id': eid}, ip); db.commit()
 
 def create_run(db: Session, data: RunCreate, email: str, ip: Optional[str] = None) -> Run:
-    run = Run(id=f'run_{uuid.uuid4().hex[:12]}', **data.model_dump(), created_by=email)
+    run = Run(id=uid('run'), **data.model_dump(), created_by=email)
     db.add(run)
     log_audit_event(db, email, 'CREATE_RUN', 'run', run.id, {'experiment_id': run.experiment_id, 'variant': run.variant_name, 'seed': run.seed}, ip)
     db.commit(); db.refresh(run)
@@ -60,22 +60,20 @@ def list_runs(db: Session, experiment_id: str, page: int = 1, page_size: int = 5
     return (items, tot)
 
 def update_run(db: Session, run: Run, data: RunUpdate, email: str, ip: Optional[str] = None) -> Run:
+    prev_tags = list(run.tags) if run.tags is not None else []
     ch = {f: getattr(data, f) for f in ('name', 'notes', 'status', 'tags') if getattr(data, f) is not None}
     for f, v in ch.items(): setattr(run, f, v)
-    if data.metrics is not None:
-        ch['metrics'] = data.metrics
-        run.metrics = {**run.metrics, **data.metrics}
+    if data.metrics is not None: ch['metrics'] = data.metrics; run.metrics = {**run.metrics, **data.metrics}
     if ch:
-        log_audit_event(db, email, 'UPDATE_RUN', 'run', run.id, ch, ip)
-        db.commit(); db.refresh(run)
+        det = {**ch, 'run_id': run.id, 'previous_tags': prev_tags, 'updated_notes': run.notes}
+        log_audit_event(db, email, 'UPDATE_RUN', 'run', run.id, det, ip); db.commit(); db.refresh(run)
     return run
 
 def delete_run(db: Session, run: Run, email: str, ip: Optional[str] = None) -> None:
     rid = run.id; db.delete(run)
     log_audit_event(db, email, 'DELETE_RUN', 'run', rid, {'deleted_id': rid}, ip); db.commit()
 
-def is_lower_better(m: str) -> bool:
-    return any(x in m.lower() for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))
+is_lower_better = lambda m: any(x in m.lower() for x in ('loss', 'latency', 'error', 'perplexity', 'memory', 'cost', 'flop'))
 
 def diff_runs(base_run: Run, target_run: Run) -> RunDiffResponse:
     bp, tp = base_run.hyperparameters or {}, target_run.hyperparameters or {}
@@ -85,13 +83,13 @@ def diff_runs(base_run: Run, target_run: Run) -> RunDiffResponse:
     for m in sorted(set(bm) | set(tm)):
         bv, tv = bm.get(m), tm.get(m)
         d = round(float(tv) - float(bv), 5) if bv is not None and tv is not None else None
-        pct = round(d / abs(bv) * 100.0, 3) if d is not None and bv not in (0, None) else 0.0 if d == 0 else None
+        pct = round(d / abs(bv) * 100.0, 3) if d is not None and bv not in (0, None) else (0.0 if d == 0 else None)
         imp = (d < 0 if is_lower_better(m) else d > 0) if d is not None else None
         m_deltas.append(MetricDelta(metric=m, base_value=bv, target_value=tv, absolute_delta=d, percent_change=pct, improved=imp))
     return RunDiffResponse(base_run=RunResponse.model_validate(base_run), target_run=RunResponse.model_validate(target_run), parameter_deltas=p_deltas, metric_deltas=m_deltas)
 
 def create_artifact(db: Session, data: ArtifactCreate, email: str, ip: Optional[str] = None) -> Artifact:
-    art = Artifact(id=f'art_{uuid.uuid4().hex[:12]}', **data.model_dump(), verified=True)
+    art = Artifact(id=uid('art'), **data.model_dump(), verified=True)
     db.add(art); log_audit_event(db, email, 'REGISTER_ARTIFACT', 'artifact', art.id, {'run_id': art.run_id, 'name': art.name, 'sha256': art.sha256_hash}, ip)
     db.commit(); db.refresh(art)
     return art
@@ -104,6 +102,5 @@ def verify_artifact_checksum(db: Session, art: Artifact, email: str, ip: Optiona
     ok = actual is not None and actual.lower() == art.sha256_hash.lower()
     msg = f"Artifact file '{art.file_path}' does not exist on disk." if actual is None else ('SHA-256 cryptographic checksum verified successfully.' if ok else f'CHECKSUM MISMATCH: expected {art.sha256_hash}, computed {actual}.')
     art.verified = ok
-    log_audit_event(db, email, 'VERIFY_ARTIFACT', 'artifact', art.id, {'verified': ok, 'message': msg}, ip)
-    db.commit()
+    log_audit_event(db, email, 'VERIFY_ARTIFACT', 'artifact', art.id, {'verified': ok, 'message': msg}, ip); db.commit()
     return ArtifactVerifyResponse(artifact_id=art.id, name=art.name, expected_sha256=art.sha256_hash, actual_sha256=actual, verified=ok, message=msg)

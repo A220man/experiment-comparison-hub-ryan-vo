@@ -1,8 +1,15 @@
 # Changelog
 
-## 1.6.0 — work-in-progress checkpoint
+## [1.7.0] - 2026-10-18
 
-Partial code published for continued development. Known issues: STATUS.md.
+## 1.6.0 — 2026-10-18
+
+### Added
+- **Run Annotation: Inline Tag & Note Editing**:
+  - Implemented `PUT /api/v1/runs/{id}` endpoint with RBAC requiring analyst or admin role (`ROLE_ANALYST`), denying viewer role with 403 Forbidden.
+  - Comprehensive audit logging recording `UPDATE_RUN` events with previous and updated annotations.
+  - Interactive frontend controls in the run inspection modal allowing analyst and admin users to edit tags and freeform markdown notes inline.
+  - Full end-to-end integration and workflow test coverage in backend pytest (`test_run_annotation_update`) and frontend vitest (`client_integration.test.ts`).
 
 ## 1.5.0 — 2026-10-14
 

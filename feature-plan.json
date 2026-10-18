@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "current_feature": "multi-metric-ranking-leaderboard",
+  "current_feature": "run-annotation",
   "features": [
     {
       "id": "pareto-frontier-optimization",
@@ -186,7 +186,28 @@
         "frontend/src/App.tsx"
       ],
       "tests": [
-        "backend/tests/test_experiment_workflows.py::test_leaderboard_composite_ranking_api"
+        "backend/tests/test_experiment_workflows.py"
+      ]
+    },
+    {
+      "id": "run-annotation",
+      "title": "Run Annotation: Inline Tag & Note Editing",
+      "status": "done",
+      "acceptance": [
+        "Analyst or admin role can update run tags and notes via PUT /api/v1/runs/{id}",
+        "Viewer role receives 403 Forbidden when attempting run annotation updates",
+        "Audit log records UPDATE_RUN event with run id, previous tags, and updated notes",
+        "Frontend provides inline editing controls for tags and notes within run inspection views"
+      ],
+      "implementation": [
+        "backend/app/services/experiment_service.py",
+        "backend/app/api/run_routes.py",
+        "frontend/src/api/client.ts",
+        "frontend/src/App.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_experiment_workflows.py",
+        "frontend/src/__tests__/client_integration.test.ts"
       ]
     },
     {

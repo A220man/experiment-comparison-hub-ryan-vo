@@ -1,10 +1,8 @@
 import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ObjectiveConfig, ParetoFrontierResult, Run, RunDiffResult, SensitivityResult, UserProfile } from "../types";
 
-let cachedCsrfToken: string | null = null;
-export function setCsrfToken(t: string | null) { cachedCsrfToken = t; }
-
-let apiBaseUrl = "";
-export function setBaseUrl(url: string) { apiBaseUrl = url; }
+let cachedCsrfToken: string | null = null, apiBaseUrl = "";
+export const setCsrfToken = (t: string | null) => { cachedCsrfToken = t; };
+export const setBaseUrl = (url: string) => { apiBaseUrl = url; };
 
 async function getCsrfToken(): Promise<string> {
   if (cachedCsrfToken) return cachedCsrfToken;
@@ -33,47 +31,52 @@ async function req<T>(path: string, opt: RequestInit = {}): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+const v1 = "/api/v1";
+type Pag<T> = { items: T[]; total: number; page: number; pages: number };
+const pJ = <T>(p: string, b: any, m = "POST") => req<T>(p, { method: m, body: JSON.stringify(b) });
+const del = (p: string) => req<void>(p, { method: "DELETE" });
+
 export const api = {
   auth: {
-    getMe: () => req<UserProfile>("/api/v1/auth/me"),
+    getMe: () => req<UserProfile>(`${v1}/auth/me`),
     fetchCsrfToken: getCsrfToken,
-    logout: () => req<{ status: string }>("/api/v1/auth/logout", { method: "POST" }),
+    logout: () => pJ<{ status: string }>(`${v1}/auth/logout`, {}),
     demoSwitch: async (profile: "admin" | "analyst" | "viewer") => {
-      const d = await req<{ status: string; user: UserProfile; csrf_token: string }>("/api/v1/auth/demo-switch", { method: "POST", body: JSON.stringify({ profile }) });
+      const d = await pJ<{ status: string; user: UserProfile; csrf_token: string }>(`${v1}/auth/demo-switch`, { profile });
       if (d.csrf_token) setCsrfToken(d.csrf_token);
       return d;
     },
   },
   experiments: {
-    list: (p = 1, sz = 50, q = "") => req<{ items: Experiment[]; total: number; page: number; pages: number }>(`/api/v1/experiments?page=${p}&page_size=${sz}${q ? `&search=${encodeURIComponent(q)}` : ""}`),
-    create: (data: any) => req<Experiment>("/api/v1/experiments", { method: "POST", body: JSON.stringify(data) }),
-    delete: (id: string) => req<void>(`/api/v1/experiments/${id}`, { method: "DELETE" }),
+    list: (p = 1, sz = 50, q = "") => req<Pag<Experiment>>(`${v1}/experiments?page=${p}&page_size=${sz}${q ? `&search=${encodeURIComponent(q)}` : ""}`),
+    create: (data: any) => pJ<Experiment>(`${v1}/experiments`, data),
+    delete: (id: string) => del(`${v1}/experiments/${id}`),
   },
   runs: {
-    list: (id: string, p = 1, sz = 100, variant?: string) => req<{ items: Run[]; total: number; page: number; pages: number }>(`/api/v1/runs?experiment_id=${id}&page=${p}&page_size=${sz}${variant ? `&variant_name=${encodeURIComponent(variant)}` : ""}`),
-    create: (data: any) => req<Run>("/api/v1/runs", { method: "POST", body: JSON.stringify(data) }),
-    delete: (id: string) => req<void>(`/api/v1/runs/${id}`, { method: "DELETE" }),
-    diff: (b: string, t: string) => req<RunDiffResult>(`/api/v1/runs/diff?base_run_id=${b}&target_run_id=${t}`),
+    list: (id: string, p = 1, sz = 100, v?: string) => req<Pag<Run>>(`${v1}/runs?experiment_id=${id}&page=${p}&page_size=${sz}${v ? `&variant_name=${encodeURIComponent(v)}` : ""}`),
+    create: (data: any) => pJ<Run>(`${v1}/runs`, data),
+    update: (id: string, data: any) => pJ<Run>(`${v1}/runs/${id}`, data, "PUT"),
+    delete: (id: string) => del(`${v1}/runs/${id}`),
+    diff: (b: string, t: string) => req<RunDiffResult>(`${v1}/runs/diff?base_run_id=${b}&target_run_id=${t}`),
   },
   artifacts: {
-    list: (id: string) => req<Artifact[]>(`/api/v1/runs/${id}/artifacts`),
-    create: (id: string, data: any) => req<Artifact>(`/api/v1/runs/${id}/artifacts`, { method: "POST", body: JSON.stringify(data) }),
-    verify: (id: string) => req<ArtifactVerifyResult>(`/api/v1/artifacts/${id}/verify`, { method: "POST" }),
+    list: (id: string) => req<Artifact[]>(`${v1}/runs/${id}/artifacts`),
+    create: (id: string, data: any) => pJ<Artifact>(`${v1}/runs/${id}/artifacts`, data),
+    verify: (id: string) => pJ<ArtifactVerifyResult>(`${v1}/artifacts/${id}/verify`, {}),
   },
   analysis: {
-    pareto: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => req<ParetoFrontierResult>("/api/v1/analysis/pareto", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
-    crossSeed: (experiment_id: string, metrics: string[], baseline_variant?: string) => req<CrossSeedResult>("/api/v1/analysis/cross-seed", { method: "POST", body: JSON.stringify({ experiment_id, metrics, baseline_variant }) }),
-    sensitivity: (experiment_id: string, target_metric: string) => req<SensitivityResult>("/api/v1/analysis/sensitivity", { method: "POST", body: JSON.stringify({ experiment_id, target_metric }) }),
-    advisory: (experiment_id: string, analysis_type = "comprehensive") => req<AdvisoryExplanationResult>("/api/v1/analysis/advisory-explanation", { method: "POST", body: JSON.stringify({ experiment_id, analysis_type }) }),
-    leaderboard: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => req<LeaderboardResult>("/api/v1/analysis/leaderboard", { method: "POST", body: JSON.stringify({ experiment_id, objectives, ...opts }) }),
+    pareto: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => pJ<ParetoFrontierResult>(`${v1}/analysis/pareto`, { experiment_id, objectives, ...opts }),
+    crossSeed: (experiment_id: string, metrics: string[], baseline_variant?: string) => pJ<CrossSeedResult>(`${v1}/analysis/cross-seed`, { experiment_id, metrics, baseline_variant }),
+    sensitivity: (experiment_id: string, target_metric: string) => pJ<SensitivityResult>(`${v1}/analysis/sensitivity`, { experiment_id, target_metric }),
+    advisory: (experiment_id: string, analysis_type = "comprehensive") => pJ<AdvisoryExplanationResult>(`${v1}/analysis/advisory-explanation`, { experiment_id, analysis_type }),
+    leaderboard: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => pJ<LeaderboardResult>(`${v1}/analysis/leaderboard`, { experiment_id, objectives, ...opts }),
   },
   audit: {
-    list: (p = 1, sz = 50) => req<{ items: AuditLogItem[]; total: number; page: number; pages: number }>(`/api/v1/audit-logs?page=${p}&page_size=${sz}`),
+    list: (p = 1, sz = 50) => req<Pag<AuditLogItem>>(`${v1}/audit-logs?page=${p}&page_size=${sz}`),
   },
   bundles: {
-    export: (id: string) => req<any>(`/api/v1/export/experiments/${id}`),
-    exportReport: (id: string) => `/api/v1/export/experiments/${id}/report.md`,
-    import: (bundle: any) => req<{ status: string; experiment: Experiment; runs_imported: number; artifacts_imported: number }>("/api/v1/import", { method: "POST", body: JSON.stringify({ bundle }) }),
+    export: (id: string) => req<any>(`${v1}/export/experiments/${id}`),
+    exportReport: (id: string) => `${v1}/export/experiments/${id}/report.md`,
+    import: (bundle: any) => pJ<{ status: string; experiment: Experiment; runs_imported: number; artifacts_imported: number }>(`${v1}/import`, { bundle }),
   },
 };
-

@@ -1,153 +1,67 @@
-import datetime
-from typing import Any, Dict, List, Literal, Optional
-from pydantic import BaseModel, ConfigDict, field_validator
+import datetime as dt
+from typing import Any, Dict as D, List as L, Literal, Optional as O
+from pydantic import BaseModel as B, ConfigDict, field_validator
+F = float; S = str; I = int; OF = O[F]; OS = O[S]; OI = O[I]
 _orm = ConfigDict(from_attributes=True)
 
-class PaginatedResponse(BaseModel):
-    total: int; page: int; page_size: int; pages: int
-
-class UserResponse(BaseModel):
-    user_id: str; email: str; name: str; roles: List[str]; session_id: str; is_demo: bool
-
-class DemoSwitchRequest(BaseModel):
-    profile: Literal['admin', 'analyst', 'viewer']
-
-class ExperimentCreate(BaseModel):
-    name: str; description: Optional[str] = None; domain: str = 'ai-ml'; baseline_variant: Optional[str] = None
-
-class ExperimentUpdate(BaseModel):
-    name: Optional[str] = None; description: Optional[str] = None; baseline_variant: Optional[str] = None
-
-class ExperimentResponse(BaseModel):
+class PaginatedResponse(B): total: I; page: I; page_size: I; pages: I
+class UserResponse(B): user_id: S; email: S; name: S; roles: L[S]; session_id: S; is_demo: bool
+class DemoSwitchRequest(B): profile: Literal['admin', 'analyst', 'viewer']
+class ExperimentCreate(B): name: S; description: OS = None; domain: S = 'ai-ml'; baseline_variant: OS = None
+class ExperimentUpdate(B): name: OS = None; description: OS = None; baseline_variant: OS = None
+class ExperimentResponse(B):
     model_config = _orm
-    id: str; name: str; description: Optional[str]; domain: str; baseline_variant: Optional[str]; created_by: str; created_at: datetime.datetime; updated_at: datetime.datetime; run_count: Optional[int] = 0
+    id: S; name: S; description: OS; domain: S; baseline_variant: OS; created_by: S; created_at: dt.datetime; updated_at: dt.datetime; run_count: OI = 0
+class ExperimentListResponse(PaginatedResponse): items: L[ExperimentResponse]
 
-class ExperimentListResponse(PaginatedResponse):
-    items: List[ExperimentResponse]
-
-class RunCreate(BaseModel):
-    experiment_id: str; name: str; variant_name: str; seed: int = 42; hyperparameters: Dict[str, Any] = {}; metrics: Dict[str, float] = {}; status: str = 'COMPLETED'; commit_hash: Optional[str] = None; tags: List[str] = []; notes: Optional[str] = None
-
+class RunCreate(B):
+    experiment_id: S; name: S; variant_name: S; seed: I = 42; hyperparameters: D[S, Any] = {}; metrics: D[S, F] = {}; status: S = 'COMPLETED'; commit_hash: OS = None; tags: L[S] = []; notes: OS = None
     @field_validator('metrics')
     @classmethod
-    def validate_metrics_numeric(cls, v: Dict[str, Any]) -> Dict[str, float]:
-        try: return {k: float(val) for k, val in v.items()}
+    def validate_metrics_numeric(cls, v: D[S, Any]) -> D[S, F]:
+        try: return {k: F(val) for k, val in v.items()}
         except (ValueError, TypeError) as e: raise ValueError(f"Metric must be float: {e}")
 
-class RunBatchCreate(BaseModel):
-    experiment_id: str; runs: List[RunCreate]
-
-class RunUpdate(BaseModel):
-    name: Optional[str] = None; tags: Optional[List[str]] = None; notes: Optional[str] = None; status: Optional[str] = None; metrics: Optional[Dict[str, float]] = None
-
-class RunResponse(BaseModel):
+class RunBatchCreate(B): experiment_id: S; runs: L[RunCreate]
+class RunUpdate(B): name: OS = None; tags: O[L[S]] = None; notes: OS = None; status: OS = None; metrics: O[D[S, F]] = None
+class RunResponse(B):
     model_config = _orm
-    id: str; experiment_id: str; name: str; variant_name: str; seed: int; hyperparameters: Dict[str, Any]; metrics: Dict[str, float]; status: str; commit_hash: Optional[str]; tags: List[str]; notes: Optional[str]; created_by: str; created_at: datetime.datetime
+    id: S; experiment_id: S; name: S; variant_name: S; seed: I; hyperparameters: D[S, Any]; metrics: D[S, F]; status: S; commit_hash: OS; tags: L[S]; notes: OS; created_by: S; created_at: dt.datetime
+class RunListResponse(PaginatedResponse): items: L[RunResponse]
 
-class RunListResponse(PaginatedResponse):
-    items: List[RunResponse]
-
-class ArtifactCreate(BaseModel):
-    run_id: str; name: str; artifact_type: str; file_path: str; file_size_bytes: int = 0; sha256_hash: str; metadata_json: Dict[str, Any] = {}
-
-class ArtifactResponse(BaseModel):
+class ArtifactCreate(B): run_id: S; name: S; artifact_type: S; file_path: S; file_size_bytes: I = 0; sha256_hash: S; metadata_json: D[S, Any] = {}
+class ArtifactResponse(B):
     model_config = _orm
-    id: str; run_id: str; name: str; artifact_type: str; file_path: str; file_size_bytes: int; sha256_hash: str; verified: bool; metadata_json: Dict[str, Any]; created_at: datetime.datetime
+    id: S; run_id: S; name: S; artifact_type: S; file_path: S; file_size_bytes: I; sha256_hash: S; verified: bool; metadata_json: D[S, Any]; created_at: dt.datetime
+class ArtifactVerifyResponse(B): artifact_id: S; name: S; expected_sha256: S; actual_sha256: OS; verified: bool; message: S
 
-class ArtifactVerifyResponse(BaseModel):
-    artifact_id: str; name: str; expected_sha256: str; actual_sha256: Optional[str]; verified: bool; message: str
+class ParameterDelta(B): parameter: S; base_value: Any; target_value: Any; changed: bool
+class MetricDelta(B): metric: S; base_value: OF; target_value: OF; absolute_delta: OF; percent_change: OF; improved: O[bool]
+class RunDiffResponse(B): base_run: RunResponse; target_run: RunResponse; parameter_deltas: L[ParameterDelta]; metric_deltas: L[MetricDelta]
+class ObjectiveConfig(B): metric: S; direction: Literal['maximize', 'minimize']
 
-class ParameterDelta(BaseModel):
-    parameter: str; base_value: Any; target_value: Any; changed: bool
+class ParetoRequest(B): experiment_id: S; objectives: L[ObjectiveConfig]; variant_filter: O[L[S]] = None; seed_filter: O[L[I]] = None; aggregate_by_variant: bool = False; aggregation_method: Literal['mean', 'median'] = 'mean'
+class ParetoPoint(B): run_id: S; run_name: S; variant_name: S; seed: I; metrics: D[S, F]; is_frontier: bool; is_knee_point: bool; normalized_distance_to_utopia: OF = None; sample_size_n: OI = None; seeds: O[L[I]] = None
+class ParetoFrontierResponse(B): experiment_id: S; objectives: L[ObjectiveConfig]; all_points: L[ParetoPoint]; frontier_points: L[ParetoPoint]; knee_point: O[ParetoPoint]; hypervolume_indicator: F; total_evaluated_runs: I; frontier_runs_count: I; dominated_runs_count: I; is_aggregated: bool = False; aggregation_method: OS = None
 
-class MetricDelta(BaseModel):
-    metric: str; base_value: Optional[float]; target_value: Optional[float]; absolute_delta: Optional[float]; percent_change: Optional[float]; improved: Optional[bool]
+class CrossSeedRequest(B): experiment_id: S; baseline_variant: OS = None; metrics: L[S] = ['accuracy', 'val_loss', 'latency_ms']; alpha: F = 0.05
+class ConfidenceInterval(B): lower: F; upper: F; confidence_level: F = 0.95; method: S
+class SeedAggregatedMetric(B): variant_name: S; metric: S; sample_size_n: I; mean: F; std_dev: F; median: F; iqr: F; min_value: F; max_value: F; standard_error: F; ci_t_distribution: ConfidenceInterval; ci_bootstrap: ConfidenceInterval; seeds: L[I]
+class HypothesisTestResult(B): baseline_variant: S; treatment_variant: S; metric: S; baseline_mean: F; treatment_mean: F; mean_delta: F; percent_change: F; t_statistic: F; p_value_welch: F; p_value_mann_whitney: F; cohens_d: F; cliffs_delta: F; is_statistically_significant: bool; significance_label: S; conclusion: S
+class CrossSeedResponse(B): experiment_id: S; baseline_variant: S; variants_evaluated: L[S]; metrics_evaluated: L[S]; aggregations: L[SeedAggregatedMetric]; hypothesis_tests: L[HypothesisTestResult]; sample_size_warnings: L[S]
 
-class RunDiffResponse(BaseModel):
-    base_run: RunResponse; target_run: RunResponse; parameter_deltas: List[ParameterDelta]; metric_deltas: List[MetricDelta]
+class SensitivityRequest(B): experiment_id: S; target_metric: S = 'accuracy'
+class ParameterSensitivity(B): parameter: S; parameter_type: Literal['numeric', 'categorical']; pearson_r: OF = None; spearman_rho: OF = None; importance_score: F; summary: S
+class SensitivityResponse(B): experiment_id: S; target_metric: S; total_runs_analyzed: I; parameters: L[ParameterSensitivity]
 
-class ObjectiveConfig(BaseModel):
-    metric: str; direction: Literal['maximize', 'minimize']
+class LeaderboardEntry(B): rank: I; variant_name: S; composite_score: F; pareto_score: F; significance_score: F; is_frontier: bool; is_knee_point: bool; is_baseline: bool; metrics: D[S, F]; sample_size_n: I; seeds: L[I]; avg_welch_p_value: F; avg_cohens_d: F; hypervolume_contribution: F
+class LeaderboardRequest(B): experiment_id: S; objectives: L[ObjectiveConfig]; baseline_variant: OS = None; variant_filter: O[L[S]] = None; seed_filter: O[L[I]] = None; aggregate_by_variant: bool = True; aggregation_method: Literal['mean', 'median'] = 'mean'; weight_pareto: F = 0.5; weight_significance: F = 0.5
+class LeaderboardResponse(B): experiment_id: S; objectives: L[ObjectiveConfig]; baseline_variant: S; leaderboard: L[LeaderboardEntry]; total_variants: I; weight_pareto: F; weight_significance: F; aggregation_method: OS = None; is_aggregated: bool = False
 
-class ParetoRequest(BaseModel):
-    experiment_id: str; objectives: List[ObjectiveConfig]; variant_filter: Optional[List[str]] = None; seed_filter: Optional[List[int]] = None; aggregate_by_variant: bool = False; aggregation_method: Literal['mean', 'median'] = 'mean'
+class AdvisoryExplanationRequest(B): experiment_id: S; analysis_type: Literal['pareto', 'cross_seed', 'comprehensive'] = 'comprehensive'
+class AdvisoryExplanationResponse(B): experiment_id: S; provider: S; model: S; is_advisory: bool = True; disclaimer: S; offline_fallback: bool; advisory_text: S; evidence_summary: D[S, Any]
 
-class ParetoPoint(BaseModel):
-    run_id: str; run_name: str; variant_name: str; seed: int; metrics: Dict[str, float]; is_frontier: bool; is_knee_point: bool; normalized_distance_to_utopia: Optional[float] = None; sample_size_n: Optional[int] = None; seeds: Optional[List[int]] = None
-
-class ParetoFrontierResponse(BaseModel):
-    experiment_id: str; objectives: List[ObjectiveConfig]; all_points: List[ParetoPoint]; frontier_points: List[ParetoPoint]; knee_point: Optional[ParetoPoint]; hypervolume_indicator: float; total_evaluated_runs: int; frontier_runs_count: int; dominated_runs_count: int; is_aggregated: bool = False; aggregation_method: Optional[str] = None
-
-class CrossSeedRequest(BaseModel):
-    experiment_id: str; baseline_variant: Optional[str] = None; metrics: List[str] = ['accuracy', 'val_loss', 'latency_ms']; alpha: float = 0.05
-
-class ConfidenceInterval(BaseModel):
-    lower: float; upper: float; confidence_level: float = 0.95; method: str
-
-class SeedAggregatedMetric(BaseModel):
-    variant_name: str; metric: str; sample_size_n: int; mean: float; std_dev: float; median: float; iqr: float; min_value: float; max_value: float; standard_error: float; ci_t_distribution: ConfidenceInterval; ci_bootstrap: ConfidenceInterval; seeds: List[int]
-
-class HypothesisTestResult(BaseModel):
-    baseline_variant: str; treatment_variant: str; metric: str; baseline_mean: float; treatment_mean: float; mean_delta: float; percent_change: float; t_statistic: float; p_value_welch: float; p_value_mann_whitney: float; cohens_d: float; cliffs_delta: float; is_statistically_significant: bool; significance_label: str; conclusion: str
-
-class CrossSeedResponse(BaseModel):
-    experiment_id: str; baseline_variant: str; variants_evaluated: List[str]; metrics_evaluated: List[str]; aggregations: List[SeedAggregatedMetric]; hypothesis_tests: List[HypothesisTestResult]; sample_size_warnings: List[str]
-
-class SensitivityRequest(BaseModel):
-    experiment_id: str; target_metric: str = 'accuracy'
-
-class ParameterSensitivity(BaseModel):
-    parameter: str; parameter_type: Literal['numeric', 'categorical']; pearson_r: Optional[float] = None; spearman_rho: Optional[float] = None; importance_score: float; summary: str
-
-class SensitivityResponse(BaseModel):
-    experiment_id: str; target_metric: str; total_runs_analyzed: int; parameters: List[ParameterSensitivity]
-class LeaderboardEntry(BaseModel):
-    rank: int
-    variant_name: str
-    composite_score: float
-    pareto_score: float
-    significance_score: float
-    is_frontier: bool
-    is_knee_point: bool
-    is_baseline: bool
-    metrics: Dict[str, float]
-    sample_size_n: int
-    seeds: List[int]
-    avg_welch_p_value: float
-    avg_cohens_d: float
-    hypervolume_contribution: float
-
-class LeaderboardRequest(BaseModel):
-    experiment_id: str
-    objectives: List[ObjectiveConfig]
-    baseline_variant: Optional[str] = None
-    variant_filter: Optional[List[str]] = None
-    seed_filter: Optional[List[int]] = None
-    aggregate_by_variant: bool = True
-    aggregation_method: Literal['mean', 'median'] = 'mean'
-    weight_pareto: float = 0.5
-    weight_significance: float = 0.5
-
-class LeaderboardResponse(BaseModel):
-    experiment_id: str
-    objectives: List[ObjectiveConfig]
-    baseline_variant: str
-    leaderboard: List[LeaderboardEntry]
-    total_variants: int
-    weight_pareto: float
-    weight_significance: float
-    aggregation_method: Optional[str] = None
-    is_aggregated: bool = False
-
-class AdvisoryExplanationRequest(BaseModel):
-    experiment_id: str; analysis_type: Literal['pareto', 'cross_seed', 'comprehensive'] = 'comprehensive'
-
-class AdvisoryExplanationResponse(BaseModel):
-    experiment_id: str; provider: str; model: str; is_advisory: bool = True; disclaimer: str; offline_fallback: bool; advisory_text: str; evidence_summary: Dict[str, Any]
-
-class AuditLogResponse(BaseModel):
+class AuditLogResponse(B):
     model_config = _orm
-    id: str; user_email: str; action: str; resource_type: str; resource_id: str; details_json: Dict[str, Any]; ip_address: Optional[str]; timestamp: datetime.datetime
-
-class AuditLogListResponse(PaginatedResponse):
-    items: List[AuditLogResponse]
+    id: S; user_email: S; action: S; resource_type: S; resource_id: S; details_json: D[S, Any]; ip_address: OS; timestamp: dt.datetime
+class AuditLogListResponse(PaginatedResponse): items: L[AuditLogResponse]

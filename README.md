@@ -3,7 +3,7 @@
 > Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
 
 
-Current version: `1.4.0`.
+Current version: `1.7.0`.
 
 Experiment Comparison Hub is an empirical experiment tracking and multi-objective comparison platform designed for machine learning researchers, evaluation engineers, and MLOps teams. Machine learning practitioners often struggle to distinguish genuine algorithmic improvements from random seed fluctuations and face conflicting trade-offs—such as accuracy versus inference latency or perplexity versus model memory—without mathematically grounded tools. The Hub solves this by computing non-dominated Pareto frontiers with normalized knee-point detection, running multi-seed hypothesis testing via Welch's two-sample t-tests and empirical bootstrap confidence intervals, ranking hyperparameter sensitivity, cryptographically verifying model artifacts with SHA-256 digests, and generating trade-off advisories grounded strictly in empirical evidence.
 
