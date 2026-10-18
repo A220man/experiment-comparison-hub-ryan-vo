@@ -4,15 +4,11 @@ from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 def _get_version() -> str:
-    for loc in ('VERSION', '/app/VERSION', '../VERSION', '../../VERSION'):
+    for loc in ('VERSION', '/app/VERSION', '../VERSION'):
         if os.path.exists(loc):
-            try:
-                with open(loc, 'r', encoding='utf-8') as f:
-                    v = f.read().strip()
-                    if v: return v
-            except Exception:
-                pass
-    return '1.3.0'
+            try: return open(loc, 'r', encoding='utf-8').read().strip() or '1.4.0'
+            except Exception: pass
+    return '1.4.0'
 
 class Settings(BaseSettings):
     app_name: str = 'Experiment Comparison Hub'

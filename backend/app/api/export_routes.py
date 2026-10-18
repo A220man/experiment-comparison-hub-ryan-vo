@@ -10,11 +10,17 @@ from backend.app.models.schemas import ExperimentResponse
 from backend.app.services import experiment_service
 
 router = APIRouter(tags=['Import & Export'])
+_V = Depends(require_role(ROLE_VIEWER))
+_A = Depends(require_role(ROLE_ANALYST))
+
+def _get_exp(db: Session, exp_id: str):
+    exp = experiment_service.get_experiment_by_id(db, exp_id)
+    if not exp: raise HTTPException(status_code=404, detail=f"Experiment '{exp_id}' not found")
+    return exp
 
 @router.get('/export/runs.csv')
-def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
-    if not experiment_service.get_experiment_by_id(db, experiment_id):
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
+def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: Session = Depends(get_db), user: UserSession = _V):
+    _get_exp(db, experiment_id)
     q = db.query(Run).filter(Run.experiment_id == experiment_id)
     if variant_name: q = q.filter(Run.variant_name == variant_name)
     runs = q.order_by(Run.created_at.desc()).all()
@@ -33,28 +39,22 @@ def export_runs_csv(experiment_id: str, variant_name: Optional[str] = None, db: 
 class ImportBundleRequest(BaseModel):
     bundle: Dict[str, Any]
 
-def _serialize_art(a: Artifact) -> Dict[str, Any]:
-    return {k: getattr(a, k) for k in ('name', 'artifact_type', 'file_path', 'file_size_bytes', 'sha256_hash', 'metadata_json')}
-
 @router.get('/export/experiments/{experiment_id}')
-def export_experiment(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
-    exp = experiment_service.get_experiment_by_id(db, experiment_id)
-    if not exp:
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
-    rf = ('name', 'variant_name', 'seed', 'hyperparameters', 'metrics', 'status', 'commit_hash', 'tags', 'notes')
-    runs_data = [{**{k: getattr(r, k) for k in rf}, 'artifacts': [_serialize_art(a) for a in r.artifacts]} for r in exp.runs]
-    return {'version': '1.0', 'format': 'experiment-comparison-hub-bundle', 'experiment': {'name': exp.name, 'description': exp.description, 'domain': exp.domain, 'baseline_variant': exp.baseline_variant}, 'runs': runs_data}
+def export_experiment(experiment_id: str, db: Session = Depends(get_db), user: UserSession = _V):
+    exp = _get_exp(db, experiment_id)
+    rf, af = ('name', 'variant_name', 'seed', 'hyperparameters', 'metrics', 'status', 'commit_hash', 'tags', 'notes'), ('name', 'artifact_type', 'file_path', 'file_size_bytes', 'sha256_hash', 'metadata_json')
+    runs_data = [{**{k: getattr(r, k) for k in rf}, 'artifacts': [{k: getattr(a, k) for k in af} for a in r.artifacts]} for r in exp.runs]
+    return {'version': '1.0', 'format': 'experiment-comparison-hub-bundle', 'experiment': dict(name=exp.name, description=exp.description, domain=exp.domain, baseline_variant=exp.baseline_variant), 'runs': runs_data}
 
 @router.post('/import', status_code=status.HTTP_201_CREATED)
-def import_experiment(req: ImportBundleRequest, request: Request, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_ANALYST))):
+def import_experiment(req: ImportBundleRequest, request: Request, db: Session = Depends(get_db), user: UserSession = _A):
     info = req.bundle.get('experiment')
-    if not info or 'name' not in info:
-        raise HTTPException(status_code=400, detail="Malformed experiment bundle: missing 'experiment.name'")
+    if not info or 'name' not in info: raise HTTPException(status_code=400, detail="Malformed experiment bundle: missing 'experiment.name'")
     exp_id = f'exp_{uuid.uuid4().hex[:12]}'
     exp = Experiment(id=exp_id, name=info['name'], description=info.get('description'), domain=info.get('domain', 'ai-ml'), baseline_variant=info.get('baseline_variant'), created_by=user.email)
     db.add(exp)
     n_runs, n_arts = 0, 0
-    run_defs = {'name': 'Run', 'variant_name': 'default', 'seed': 42, 'hyperparameters': {}, 'metrics': {}, 'status': 'COMPLETED', 'commit_hash': None, 'tags': [], 'notes': None}
+    run_defs = dict(name='Run', variant_name='default', seed=42, hyperparameters={}, metrics={}, status='COMPLETED', commit_hash=None, tags=[], notes=None)
     for r in req.bundle.get('runs', []):
         rid = f'run_{uuid.uuid4().hex[:12]}'
         db.add(Run(id=rid, experiment_id=exp_id, created_by=user.email, **{k: r.get(k, d) for k, d in run_defs.items()}))
@@ -65,22 +65,19 @@ def import_experiment(req: ImportBundleRequest, request: Request, db: Session = 
             n_arts += 1
     ip = request.client.host if request.client else None
     experiment_service.log_audit_event(db, user.email, 'IMPORT_EXPERIMENT', 'experiment', exp_id, {'imported_runs': n_runs, 'imported_artifacts': n_arts}, ip)
-    db.commit()
-    db.refresh(exp)
+    db.commit(); db.refresh(exp)
     resp = ExperimentResponse.model_validate(exp)
     resp.run_count = n_runs
     return {'status': 'imported', 'experiment': resp, 'runs_imported': n_runs, 'artifacts_imported': n_arts}
 
 @router.get('/export/experiments/{experiment_id}/report.md')
-def export_experiment_report(experiment_id: str, db: Session = Depends(get_db), user: UserSession = Depends(require_role(ROLE_VIEWER))):
-    exp = experiment_service.get_experiment_by_id(db, experiment_id)
-    if not exp:
-        raise HTTPException(status_code=404, detail=f"Experiment '{experiment_id}' not found")
+def export_experiment_report(experiment_id: str, db: Session = Depends(get_db), user: UserSession = _V):
+    exp = _get_exp(db, experiment_id)
     runs = db.query(Run).filter(Run.experiment_id == experiment_id).order_by(Run.created_at.asc()).all()
     artifacts = db.query(Artifact).join(Run).filter(Run.experiment_id == experiment_id).all()
     mk = sorted({k for r in runs for k in (r.metrics or {})})
-    hdr = f"# Evaluation Report: {exp.name}\n\n**Author**: Ryan Vo <ryandtvo@gmail.com> | AI & Machine Learning\n**ID**: `{exp.id}` | **Baseline**: `{exp.baseline_variant or 'none'}`\n\n## Overview\n{exp.description or 'Pareto optimization and hypothesis testing evaluation.'}\n\n## Runs\n"
+    hdr = f"# Evaluation Report: {exp.name}\n\n**Author**: Ryan Vo <ryandtvo@gmail.com>\n**ID**: `{exp.id}` | **Baseline**: `{exp.baseline_variant or 'none'}`\n\n## Runs\n"
     th = "| Run | Variant | Seed | " + " | ".join(mk) + " |\n| --- | --- | --- | " + " | ".join(["---"] * len(mk)) + " |\n"
     rows = "".join(f"| `{r.name}` | `{r.variant_name}` | {r.seed} | " + " | ".join(str((r.metrics or {}).get(k, 'N/A')) for k in mk) + " |\n" for r in runs)
-    arts = "\n## Artifacts\n" + "".join(f"- `{a.name}` ({a.artifact_type}): `{a.sha256_hash}` (verified={a.verified})\n" for a in artifacts) if artifacts else ""
+    arts = "\n## Artifacts\n" + "".join(f"- `{a.name}`: `{a.sha256_hash}`\n" for a in artifacts) if artifacts else ""
     return Response(content=hdr + th + rows + arts, media_type="text/markdown", headers={"Content-Disposition": f'attachment; filename="report_{exp.id}.md"'})

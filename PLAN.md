@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-multi-metric-ranking-leaderboard
+run-annotation
 
 ## Roadmap
 
@@ -139,7 +139,21 @@ Acceptance:
 
 Implementation: `backend/app/services/leaderboard_engine.py`, `backend/app/models/schemas.py`, `backend/app/api/analysis_routes.py`, `frontend/src/types/index.ts`, `frontend/src/api/client.ts`, `frontend/src/components/Leaderboard.tsx`, `frontend/src/App.tsx`
 
-Tests: `backend/tests/test_experiment_workflows.py::test_leaderboard_composite_ranking_api`
+Tests: `backend/tests/test_experiment_workflows.py`
+
+### run-annotation — Run Annotation: Inline Tag & Note Editing
+
+Status: done
+
+Acceptance:
+- Analyst or admin role can update run tags and notes via PUT /api/v1/runs/{id}
+- Viewer role receives 403 Forbidden when attempting run annotation updates
+- Audit log records UPDATE_RUN event with run id, previous tags, and updated notes
+- Frontend provides inline editing controls for tags and notes within run inspection views
+
+Implementation: `backend/app/services/experiment_service.py`, `backend/app/api/run_routes.py`, `frontend/src/api/client.ts`, `frontend/src/App.tsx`
+
+Tests: `backend/tests/test_experiment_workflows.py`, `frontend/src/__tests__/client_integration.test.ts`
 
 ### hyperparameter-tuning-recommendations — Automated Hyperparameter Tuning Recommendations
 

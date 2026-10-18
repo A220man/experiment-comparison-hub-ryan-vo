@@ -351,3 +351,67 @@ def test_leaderboard_composite_ranking_api(analyst_client):
         assert "seeds" in entry
 
 
+def test_run_annotation_update(client, db_session):
+    """Verify inline tag and note annotation updates, role enforcement, and audit logging."""
+    from backend.tests.conftest import create_authenticated_client
+
+    a_client, a_headers = create_authenticated_client(client, "analyst")
+    exp = a_client.post("/api/v1/experiments", json={"name": "Annotation Exp"}, headers=a_headers).json()
+    run = a_client.post(
+        "/api/v1/runs",
+        json={
+            "experiment_id": exp["id"],
+            "name": "annot_run_1",
+            "variant_name": "v_annot",
+            "seed": 42,
+            "metrics": {"accuracy": 0.88, "latency_ms": 12.0},
+            "tags": ["baseline_candidate"],
+            "notes": "Initial run note before annotation",
+        },
+        headers=a_headers,
+    ).json()
+    run_id = run["id"]
+
+    # 1. Viewer role is denied with 403
+    v_client, v_headers = create_authenticated_client(client, "viewer")
+    v_res = v_client.put(
+        f"/api/v1/runs/{run_id}",
+        json={"tags": ["unauthorized"], "notes": "Viewer attempt"},
+        headers=v_headers,
+    )
+    assert v_res.status_code == 403
+
+    # 2. Analyst role updates tags and notes successfully
+    a_client, a_headers = create_authenticated_client(client, "analyst")
+    a_res = a_client.put(
+        f"/api/v1/runs/{run_id}",
+        json={"tags": ["candidate", "fp16"], "notes": "Pareto knee candidate with optimized quantization."},
+        headers=a_headers,
+    )
+    assert a_res.status_code == 200
+    updated = a_res.json()
+    assert updated["tags"] == ["candidate", "fp16"]
+    assert updated["notes"] == "Pareto knee candidate with optimized quantization."
+
+    # 3. Viewer can read updated annotations
+    v_client, v_headers = create_authenticated_client(client, "viewer")
+    get_res = v_client.get(f"/api/v1/runs/{run_id}", headers=v_headers)
+    assert get_res.status_code == 200
+    fetched = get_res.json()
+    assert fetched["tags"] == ["candidate", "fp16"]
+    assert fetched["notes"] == "Pareto knee candidate with optimized quantization."
+
+    # 4. Audit trail records UPDATE_RUN with analyst user, run id, previous tags, and updated notes
+    ad_client, ad_headers = create_authenticated_client(client, "admin")
+    audit_res = ad_client.get("/api/v1/audit-logs", headers=ad_headers)
+    assert audit_res.status_code == 200
+    matching_log = next((item for item in audit_res.json()["items"] if item["action"] == "UPDATE_RUN" and item["resource_id"] == run_id), None)
+    assert matching_log is not None
+    assert matching_log["resource_type"] == "run"
+    assert matching_log["details_json"].get("run_id") == run_id
+    assert matching_log["details_json"].get("previous_tags") == ["baseline_candidate"]
+    assert matching_log["details_json"].get("updated_notes") == "Pareto knee candidate with optimized quantization."
+    assert "candidate" in matching_log["details_json"].get("tags", [])
+
+
+

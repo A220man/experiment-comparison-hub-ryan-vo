@@ -1,84 +1,22 @@
-export interface UserProfile {
-  user_id: string; email: string; name: string; roles: string[]; session_id: string; is_demo: boolean;
-}
-export interface Experiment {
-  id: string; name: string; description?: string; domain: string; baseline_variant?: string; created_by: string; created_at: string; updated_at: string; run_count?: number;
-}
-export interface Run {
-  id: string; experiment_id: string; name: string; variant_name: string; seed: number; hyperparameters: Record<string, any>; metrics: Record<string, number>; status: string; commit_hash?: string; tags: string[]; notes?: string; created_by: string; created_at: string;
-}
-export interface Artifact {
-  id: string; run_id: string; name: string; artifact_type: string; file_path: string; file_size_bytes: number; sha256_hash: string; verified: boolean; metadata_json: Record<string, any>; created_at: string;
-}
-export interface ArtifactVerifyResult {
-  artifact_id: string; name: string; expected_sha256: string; actual_sha256: string | null; verified: boolean; message: string;
-}
-export interface ParameterDelta {
-  parameter: string; base_value: any; target_value: any; changed: boolean;
-}
-export interface MetricDelta {
-  metric: string; base_value: number | null; target_value: number | null; absolute_delta: number | null; percent_change: number | null; improved: boolean | null;
-}
-export interface RunDiffResult {
-  base_run: Run; target_run: Run; parameter_deltas: ParameterDelta[]; metric_deltas: MetricDelta[];
-}
-export interface ObjectiveConfig {
-  metric: string; direction: "maximize" | "minimize";
-}
-export interface ParetoPoint {
-  run_id: string; run_name: string; variant_name: string; seed: number; metrics: Record<string, number>; is_frontier: boolean; is_knee_point: boolean; normalized_distance_to_utopia: number | null; sample_size_n?: number; seeds?: number[];
-}
-export interface ParetoFrontierResult {
-  experiment_id: string; objectives: ObjectiveConfig[]; all_points: ParetoPoint[]; frontier_points: ParetoPoint[]; knee_point: ParetoPoint | null; hypervolume_indicator: number; total_evaluated_runs: number; frontier_runs_count: number; dominated_runs_count: number; is_aggregated?: boolean; aggregation_method?: string;
-}
-export interface ConfidenceInterval {
-  lower: number; upper: number; confidence_level: number; method: string;
-}
-export interface SeedAggregatedMetric {
-  variant_name: string; metric: string; sample_size_n: number; mean: number; std_dev: number; median: number; iqr: number; min_value: number; max_value: number; standard_error: number; ci_t_distribution: ConfidenceInterval; ci_bootstrap: ConfidenceInterval; seeds: number[];
-}
-export interface HypothesisTestResult {
-  baseline_variant: string; treatment_variant: string; metric: string; baseline_mean: number; treatment_mean: number; mean_delta: number; percent_change: number; t_statistic: number; p_value_welch: number; p_value_mann_whitney: number; cohens_d: number; cliffs_delta: number; is_statistically_significant: boolean; significance_label: string; conclusion: string;
-}
-export interface CrossSeedResult {
-  experiment_id: string; baseline_variant: string; variants_evaluated: string[]; metrics_evaluated: string[]; aggregations: SeedAggregatedMetric[]; hypothesis_tests: HypothesisTestResult[]; sample_size_warnings: string[];
-}
-export interface ParameterSensitivity {
-  parameter: string; parameter_type: "numeric" | "categorical"; pearson_r: number | null; spearman_rho: number | null; importance_score: number; summary: string;
-}
-export interface SensitivityResult {
-  experiment_id: string; target_metric: string; total_runs_analyzed: number; parameters: ParameterSensitivity[];
-}
-export interface AdvisoryExplanationResult {
-  experiment_id: string; provider: string; model: string; is_advisory: boolean; disclaimer: string; offline_fallback: boolean; advisory_text: string; evidence_summary: Record<string, any>;
-}
-export interface AuditLogItem {
-  id: string; user_email: string; action: string; resource_type: string; resource_id: string; details_json: Record<string, any>; ip_address: string | null; timestamp: string;
-}
-export interface LeaderboardEntry {
-  rank: number;
-  variant_name: string;
-  composite_score: number;
-  pareto_score: number;
-  significance_score: number;
-  is_frontier: boolean;
-  is_knee_point: boolean;
-  is_baseline: boolean;
-  metrics: Record<string, number>;
-  sample_size_n: number;
-  seeds: number[];
-  avg_welch_p_value: number;
-  avg_cohens_d: number;
-  hypervolume_contribution: number;
-}
-export interface LeaderboardResult {
-  experiment_id: string;
-  objectives: ObjectiveConfig[];
-  baseline_variant: string;
-  leaderboard: LeaderboardEntry[];
-  total_variants: number;
-  weight_pareto: number;
-  weight_significance: number;
-  aggregation_method?: string;
-  is_aggregated: boolean;
-}
+type S = string; type N = number; type B = boolean; type R = Record<S, any>; type RN = Record<S, N>;
+export interface UserProfile{user_id:S;email:S;name:S;roles:S[];session_id:S;is_demo:B}
+export interface Experiment{id:S;name:S;description?:S;domain:S;baseline_variant?:S;created_by:S;created_at:S;updated_at:S;run_count?:N}
+export interface Run{id:S;experiment_id:S;name:S;variant_name:S;seed:N;hyperparameters:R;metrics:RN;status:S;commit_hash?:S;tags:S[];notes?:S;created_by:S;created_at:S}
+export interface Artifact{id:S;run_id:S;name:S;artifact_type:S;file_path:S;file_size_bytes:N;sha256_hash:S;verified:B;metadata_json:R;created_at:S}
+export interface ArtifactVerifyResult{artifact_id:S;name:S;expected_sha256:S;actual_sha256:S|null;verified:B;message:S}
+export interface ParameterDelta{parameter:S;base_value:any;target_value:any;changed:B}
+export interface MetricDelta{metric:S;base_value:N|null;target_value:N|null;absolute_delta:N|null;percent_change:N|null;improved:B|null}
+export interface RunDiffResult{base_run:Run;target_run:Run;parameter_deltas:ParameterDelta[];metric_deltas:MetricDelta[]}
+export interface ObjectiveConfig{metric:S;direction:"maximize"|"minimize"}
+export interface ParetoPoint{run_id:S;run_name:S;variant_name:S;seed:N;metrics:RN;is_frontier:B;is_knee_point:B;normalized_distance_to_utopia:N|null;sample_size_n?:N;seeds?:N[]}
+export interface ParetoFrontierResult{experiment_id:S;objectives:ObjectiveConfig[];all_points:ParetoPoint[];frontier_points:ParetoPoint[];knee_point:ParetoPoint|null;hypervolume_indicator:N;total_evaluated_runs:N;frontier_runs_count:N;dominated_runs_count:N;is_aggregated?:B;aggregation_method?:S}
+export interface ConfidenceInterval{lower:N;upper:N;confidence_level:N;method:S}
+export interface SeedAggregatedMetric{variant_name:S;metric:S;sample_size_n:N;mean:N;std_dev:N;median:N;iqr:N;min_value:N;max_value:N;standard_error:N;ci_t_distribution:ConfidenceInterval;ci_bootstrap:ConfidenceInterval;seeds:N[]}
+export interface HypothesisTestResult{baseline_variant:S;treatment_variant:S;metric:S;baseline_mean:N;treatment_mean:N;mean_delta:N;percent_change:N;t_statistic:N;p_value_welch:N;p_value_mann_whitney:N;cohens_d:N;cliffs_delta:N;is_statistically_significant:B;significance_label:S;conclusion:S}
+export interface CrossSeedResult{experiment_id:S;baseline_variant:S;variants_evaluated:S[];metrics_evaluated:S[];aggregations:SeedAggregatedMetric[];hypothesis_tests:HypothesisTestResult[];sample_size_warnings:S[]}
+export interface ParameterSensitivity{parameter:S;parameter_type:"numeric"|"categorical";pearson_r:N|null;spearman_rho:N|null;importance_score:N;summary:S}
+export interface SensitivityResult{experiment_id:S;target_metric:S;total_runs_analyzed:N;parameters:ParameterSensitivity[]}
+export interface AdvisoryExplanationResult{experiment_id:S;provider:S;model:S;is_advisory:B;disclaimer:S;offline_fallback:B;advisory_text:S;evidence_summary:R}
+export interface AuditLogItem{id:S;user_email:S;action:S;resource_type:S;resource_id:S;details_json:R;ip_address:S|null;timestamp:S}
+export interface LeaderboardEntry{rank:N;variant_name:S;composite_score:N;pareto_score:N;significance_score:N;is_frontier:B;is_knee_point:B;is_baseline:B;metrics:RN;sample_size_n:N;seeds:N[];avg_welch_p_value:N;avg_cohens_d:N;hypervolume_contribution:N}
+export interface LeaderboardResult{experiment_id:S;objectives:ObjectiveConfig[];baseline_variant:S;leaderboard:LeaderboardEntry[];total_variants:N;weight_pareto:N;weight_significance:N;aggregation_method?:S;is_aggregated:B}

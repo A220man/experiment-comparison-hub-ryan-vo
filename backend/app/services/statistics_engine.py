@@ -5,14 +5,11 @@ from scipy import stats
 from backend.app.models.schemas import ConfidenceInterval, CrossSeedResponse, HypothesisTestResult, SeedAggregatedMetric
 from backend.app.services.experiment_service import is_lower_better
 
-def r5(v: float) -> float:
-    return round(float(v), 5)
+r5 = lambda v: round(float(v), 5)
 
 def compute_bootstrap_ci(values: np.ndarray, n_resamples: int = 2000, confidence_level: float = 0.95, seed: int = 42) -> Tuple[float, float]:
     n = len(values)
-    if n < 2:
-        v0 = float(values[0]) if n == 1 else 0.0
-        return (v0, v0)
+    if n < 2: return (float(values[0]) if n == 1 else 0.0, float(values[0]) if n == 1 else 0.0)
     rng = np.random.RandomState(seed)
     res = np.mean(rng.choice(values, size=(n_resamples, n), replace=True), axis=1)
     a = 1.0 - confidence_level
@@ -20,9 +17,7 @@ def compute_bootstrap_ci(values: np.ndarray, n_resamples: int = 2000, confidence
 
 def compute_t_distribution_ci(values: np.ndarray, confidence_level: float = 0.95) -> Tuple[float, float]:
     n = len(values)
-    if n < 2:
-        v0 = float(values[0]) if n == 1 else 0.0
-        return (v0, v0)
+    if n < 2: return (float(values[0]) if n == 1 else 0.0, float(values[0]) if n == 1 else 0.0)
     m = float(np.mean(values))
     margin = stats.t.ppf((1.0 + confidence_level) / 2.0, df=n - 1) * float(stats.sem(values))
     return (m - margin, m + margin)
@@ -79,8 +74,9 @@ def run_cross_seed_analysis(runs: List[dict], baseline_variant: Optional[str], m
             tres = stats.ttest_ind(at, ab, equal_var=False)
             p_w = float(tres.pvalue) if not np.isnan(tres.pvalue) else 1.0
             t_stat = float(tres.statistic) if not np.isnan(tres.statistic) else 0.0
-            try: mw_res = stats.mannwhitneyu(at, ab, alternative='two-sided'); p_mw = float(mw_res.pvalue) if not np.isnan(mw_res.pvalue) else 1.0
+            try: p_mw = float(stats.mannwhitneyu(at, ab, alternative='two-sided').pvalue)
             except Exception: p_mw = 1.0
+            if np.isnan(p_mw): p_mw = 1.0
             d_val, c_val = compute_cohens_d(ab, at), compute_cliffs_delta(at, ab)
             sig = p_w < alpha
             better = delta < 0 if is_lower_better(m) else delta > 0

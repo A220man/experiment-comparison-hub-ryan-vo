@@ -8,12 +8,9 @@ def is_dominating(a: Dict[str, float], b: Dict[str, float], objectives: List[Obj
     for obj in objectives:
         va, vb = a.get(obj.metric), b.get(obj.metric)
         if va is None or vb is None: return False
-        if obj.direction == 'maximize':
-            if va < vb: return False
-            if va > vb: better = True
-        else:
-            if va > vb: return False
-            if va < vb: better = True
+        d = (va - vb) if obj.direction == 'maximize' else (vb - va)
+        if d < 0: return False
+        if d > 0: better = True
     return better
 
 def aggregate_runs_by_variant(runs: List[dict], objectives: List[ObjectiveConfig], method: str = 'mean') -> List[dict]:
@@ -32,9 +29,10 @@ def aggregate_runs_by_variant(runs: List[dict], objectives: List[ObjectiveConfig
     return agg
 
 def calculate_pareto_frontier(runs_data: List[dict], objectives: List[ObjectiveConfig], experiment_id: str, is_aggregated: bool = False, aggregation_method: Optional[str] = None) -> ParetoFrontierResponse:
+    kw = {'experiment_id': experiment_id, 'objectives': objectives, 'is_aggregated': is_aggregated, 'aggregation_method': aggregation_method}
     valid = [r for r in runs_data if all(obj.metric in r.get('metrics', {}) and isinstance(r['metrics'][obj.metric], (int, float)) for obj in objectives)]
     if not valid:
-        return ParetoFrontierResponse(experiment_id=experiment_id, objectives=objectives, all_points=[], frontier_points=[], knee_point=None, hypervolume_indicator=0.0, total_evaluated_runs=0, frontier_runs_count=0, dominated_runs_count=0, is_aggregated=is_aggregated, aggregation_method=aggregation_method)
+        return ParetoFrontierResponse(**kw, all_points=[], frontier_points=[], knee_point=None, hypervolume_indicator=0.0, total_evaluated_runs=0, frontier_runs_count=0, dominated_runs_count=0)
     n = len(valid)
     f_idx = [i for i in range(n) if not any(j != i and is_dominating(valid[j]['metrics'], valid[i]['metrics'], objectives) for j in range(n))]
     k_idx, dists = identify_knee_point(valid, f_idx, objectives)
@@ -47,7 +45,7 @@ def calculate_pareto_frontier(runs_data: List[dict], objectives: List[ObjectiveC
     frontier.sort(key=lambda p: p.metrics[o0.metric], reverse=(o0.direction == 'maximize'))
     hv = compute_hypervolume(valid, f_idx, objectives)
     knee = next((p for p in frontier if p.is_knee_point), None)
-    return ParetoFrontierResponse(experiment_id=experiment_id, objectives=objectives, all_points=points, frontier_points=frontier, knee_point=knee, hypervolume_indicator=round(hv, 4), total_evaluated_runs=len(points), frontier_runs_count=len(frontier), dominated_runs_count=len(points) - len(frontier), is_aggregated=is_aggregated, aggregation_method=aggregation_method)
+    return ParetoFrontierResponse(**kw, all_points=points, frontier_points=frontier, knee_point=knee, hypervolume_indicator=round(hv, 4), total_evaluated_runs=len(points), frontier_runs_count=len(frontier), dominated_runs_count=len(points) - len(frontier))
 
 def _normalize_metric(val: float, mn: float, mx: float, direction: str) -> float:
     span = mx - mn
