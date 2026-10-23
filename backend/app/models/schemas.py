@@ -63,5 +63,20 @@ class AdvisoryExplanationResponse(B): experiment_id: S; provider: S; model: S; i
 
 class AuditLogResponse(B):
     model_config = _orm
-    id: S; user_email: S; action: S; resource_type: S; resource_id: S; details_json: D[S, Any]; ip_address: OS; timestamp: dt.datetime
+class TuningRecommendation(B):
+    parameter: S
+    parameter_type: Literal['numeric', 'categorical']
+    current_range: L[Any]
+    recommended_range: L[Any]
+    rationale: S
+    confidence: F
+    priority: Literal['high', 'medium', 'low']
+    source: Literal['sensitivity', 'pareto_knee', 'combined']
+
+class TuningRecommendationsResponse(B):
+    experiment_id: S
+    target_metric: S
+    recommendations: L[TuningRecommendation]
+    sensitivity_summary: D[S, Any]
+    pareto_knee_config: O[D[S, Any]] = None
 class AuditLogListResponse(PaginatedResponse): items: L[AuditLogResponse]

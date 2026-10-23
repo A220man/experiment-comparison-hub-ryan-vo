@@ -10,7 +10,7 @@ from backend.app.api.audit_routes import router as audit_router
 from backend.app.api.auth_routes import router as auth_router
 from backend.app.api.experiment_routes import router as experiment_router
 from backend.app.api.export_routes import router as export_router
-from backend.app.api.run_routes import router as run_router
+from backend.app.api.tuning_routes import router as tuning_router
 from backend.app.core.config import settings
 from backend.app.core.database import SessionLocal, init_db
 
@@ -54,5 +54,5 @@ def readiness_check():
     except Exception as exc:
         return JSONResponse(status_code=503, content={'status': 'unready', 'error': str(exc)})
 
-for r in (auth_router, experiment_router, run_router, artifact_router, analysis_router, audit_router, export_router):
+for r in (auth_router, experiment_router, run_router, artifact_router, analysis_router, audit_router, export_router, tuning_router):
     app.include_router(r, prefix='/api/v1')
