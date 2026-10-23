@@ -4,7 +4,7 @@ Each round completes one feature or repair. Future items are planned, not implem
 
 ## Current round
 
-run-annotation
+hyperparameter-tuning-recommendations
 
 ## Roadmap
 
@@ -92,7 +92,7 @@ Tests: `backend/tests/test_experiment_workflows.py`
 Status: done
 
 Acceptance:
-- Evidence-grounded trade-off explanations referencing computed Pareto and Welch stats
+- Evidence-grounded trade-off explanations referencing calculated Pareto and Welch stats
 - Offline deterministic fallback produces actionable advice without API credentials
 - Multi-provider adapter support (OpenAI, Anthropic, Gemini, Ollama) with credential redaction
 
@@ -129,37 +129,18 @@ Implementation: `backend/app/services/pareto_engine.py`, `backend/app/models/sch
 
 Tests: `backend/tests/test_pareto_engine.py`, `backend/tests/test_experiment_workflows.py`, `frontend/src/__tests__/dashboard.test.tsx`
 
-### multi-metric-ranking-leaderboard — Multi-Metric Composite Ranking & Variant Leaderboard
-
-Status: done
-
-Acceptance:
-- Composite scoring across normalized Pareto objectives and cross-seed significance
-- Sortable variant leaderboard ranking table
-
-Implementation: `backend/app/services/leaderboard_engine.py`, `backend/app/models/schemas.py`, `backend/app/api/analysis_routes.py`, `frontend/src/types/index.ts`, `frontend/src/api/client.ts`, `frontend/src/components/Leaderboard.tsx`, `frontend/src/App.tsx`
-
-Tests: `backend/tests/test_experiment_workflows.py`
-
-### run-annotation — Run Annotation: Inline Tag & Note Editing
-
-Status: done
-
-Acceptance:
-- Analyst or admin role can update run tags and notes via PUT /api/v1/runs/{id}
-- Viewer role receives 403 Forbidden when attempting run annotation updates
-- Audit log records UPDATE_RUN event with run id, previous tags, and updated notes
-- Frontend provides inline editing controls for tags and notes within run inspection views
-
-Implementation: `backend/app/services/experiment_service.py`, `backend/app/api/run_routes.py`, `frontend/src/api/client.ts`, `frontend/src/App.tsx`
-
-Tests: `backend/tests/test_experiment_workflows.py`, `frontend/src/__tests__/client_integration.test.ts`
-
 ### hyperparameter-tuning-recommendations — Automated Hyperparameter Tuning Recommendations
 
-Status: planned
+Status: in_progress
 
 Acceptance:
 - Search interval recommendations for influential hyperparameters identified in sensitivity analysis
 - Boundary suggestions based on knee point parameter configurations
+- Integration with existing sensitivity and Pareto engines
+- API endpoint for retrieving tuning recommendations
+- Frontend display of recommendations in sensitivity analysis tab
+
+Implementation: `backend/app/services/tuning_engine.py`, `backend/app/api/tuning_routes.py`, `frontend/src/components/TuningRecommendations.tsx`
+
+Tests: `backend/tests/test_tuning_engine.py`, `frontend/src/__tests__/tuning.test.tsx`
 

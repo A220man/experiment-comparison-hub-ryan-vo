@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "current_feature": "run-annotation",
+  "current_feature": "hyperparameter-tuning-recommendations",
   "features": [
     {
       "id": "pareto-frontier-optimization",
@@ -112,7 +112,7 @@
       "title": "Grounded LLM Advisory Synthesis with Deterministic Offline Fallback",
       "status": "done",
       "acceptance": [
-        "Evidence-grounded trade-off explanations referencing computed Pareto and Welch stats",
+        "Evidence-grounded trade-off explanations referencing calculated Pareto and Welch stats",
         "Offline deterministic fallback produces actionable advice without API credentials",
         "Multi-provider adapter support (OpenAI, Anthropic, Gemini, Ollama) with credential redaction"
       ],
@@ -169,57 +169,25 @@
       ]
     },
     {
-      "id": "multi-metric-ranking-leaderboard",
-      "title": "Multi-Metric Composite Ranking & Variant Leaderboard",
-      "status": "done",
-      "acceptance": [
-        "Composite scoring across normalized Pareto objectives and cross-seed significance",
-        "Sortable variant leaderboard ranking table"
-      ],
-      "implementation": [
-        "backend/app/services/leaderboard_engine.py",
-        "backend/app/models/schemas.py",
-        "backend/app/api/analysis_routes.py",
-        "frontend/src/types/index.ts",
-        "frontend/src/api/client.ts",
-        "frontend/src/components/Leaderboard.tsx",
-        "frontend/src/App.tsx"
-      ],
-      "tests": [
-        "backend/tests/test_experiment_workflows.py"
-      ]
-    },
-    {
-      "id": "run-annotation",
-      "title": "Run Annotation: Inline Tag & Note Editing",
-      "status": "done",
-      "acceptance": [
-        "Analyst or admin role can update run tags and notes via PUT /api/v1/runs/{id}",
-        "Viewer role receives 403 Forbidden when attempting run annotation updates",
-        "Audit log records UPDATE_RUN event with run id, previous tags, and updated notes",
-        "Frontend provides inline editing controls for tags and notes within run inspection views"
-      ],
-      "implementation": [
-        "backend/app/services/experiment_service.py",
-        "backend/app/api/run_routes.py",
-        "frontend/src/api/client.ts",
-        "frontend/src/App.tsx"
-      ],
-      "tests": [
-        "backend/tests/test_experiment_workflows.py",
-        "frontend/src/__tests__/client_integration.test.ts"
-      ]
-    },
-    {
       "id": "hyperparameter-tuning-recommendations",
       "title": "Automated Hyperparameter Tuning Recommendations",
-      "status": "planned",
+      "status": "in_progress",
       "acceptance": [
         "Search interval recommendations for influential hyperparameters identified in sensitivity analysis",
-        "Boundary suggestions based on knee point parameter configurations"
+        "Boundary suggestions based on knee point parameter configurations",
+        "Integration with existing sensitivity and Pareto engines",
+        "API endpoint for retrieving tuning recommendations",
+        "Frontend display of recommendations in sensitivity analysis tab"
       ],
-      "implementation": [],
-      "tests": []
+      "implementation": [
+        "backend/app/services/tuning_engine.py",
+        "backend/app/api/tuning_routes.py",
+        "frontend/src/components/TuningRecommendations.tsx"
+      ],
+      "tests": [
+        "backend/tests/test_tuning_engine.py",
+        "frontend/src/__tests__/tuning.test.tsx"
+      ]
     }
   ]
 }
