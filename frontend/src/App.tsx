@@ -7,8 +7,9 @@ import { Leaderboard } from "./components/Leaderboard";
 import { Navbar } from "./components/Navbar";
 import { ParetoChart } from "./components/ParetoChart";
 import { RunDiffModal } from "./components/RunDiffModal";
+import { TuningRecommendations } from "./components/TuningRecommendations";
 import { useAuth } from "./context/AuthContext";
-import { AdvisoryExplanationResult, Artifact, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ParetoFrontierResult, Run, SensitivityResult } from "./types";
+import { AdvisoryExplanationResult, Artifact, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ParetoFrontierResult, Run, SensitivityResult, TuningRecommendationsResponse } from "./types";
 
 const bB = "px-2.5 py-1 rounded text-xs flex items-center gap-1", bP = `${bB} bg-blue-600 hover:bg-blue-500 text-white`, bS = `${bB} bg-slate-800 hover:bg-slate-700 text-slate-300`, bI = "p-1 text-slate-400 hover:text-white";
 const card = "bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-xl", sel = "bg-slate-950 border border-slate-800 rounded px-2 py-1 text-xs text-white", box = "bg-slate-950/60 p-2 rounded border border-slate-800 font-mono text-[11px]";
@@ -27,13 +28,13 @@ export const App: React.FC = () => {
 const { isAdmin, isAnalyst } = useAuth();
 const [experiments, setExps] = useState<Experiment[]>([]), [selectedExp, setSelExp] = useState<Experiment | null>(null), [loadingExp, setLoadingExp] = useState(false), [expSearch, setExpSearch] = useState("");
 const [expM, setExpM] = useState(false), [impM, setImpM] = useState(false), [importJson, setImportJson] = useState("");
-const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" }), [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts" | "leaderboard">("runs");
+const [newExp, setNewExp] = useState({ name: "", desc: "", domain: "ai-ml", baseline: "baseline" }), [tab, setTab] = useState<"runs" | "pareto" | "cross_seed" | "sensitivity" | "artifacts" | "leaderboard" | "tuning">("runs");
 const [runs, setRuns] = useState<Run[]>([]), [loadingRuns, setLoadingRuns] = useState(false), [vf, setVf] = useState(""), [selDiff, setSelDiff] = useState<string[]>([]);
 const [diffPair, setDiffPair] = useState<{ base: string; target: string } | null>(null), [runM, setRunM] = useState(false), [detailRun, setDetailRun] = useState<Run | null>(null);
 const [newRun, setNewRun] = useState({ name: "", variant: "variant_a", seed: 42, metrics: '{"accuracy":0.88,"latency_ms":12.4}', hp: '{"lr":0.001}' });
 const [isAnnotating, setIsAnnotating] = useState(false), [annotTags, setAnnotTags] = useState(""), [annotNotes, setAnnotNotes] = useState(""), [savingAnnot, setSavingAnnot] = useState(false);
 const [cfg, setCfg] = useState({ m1: "accuracy", d1: "maximize" as const, m2: "latency_ms", d2: "minimize" as const, sens: "accuracy", agg: false });
-const [an, setAn] = useState<{ p?: ParetoFrontierResult; cs?: CrossSeedResult; s?: SensitivityResult; adv?: AdvisoryExplanationResult; lb?: LeaderboardResult }>({});
+const [an, setAn] = useState<{ p?: ParetoFrontierResult; cs?: CrossSeedResult; s?: SensitivityResult; adv?: AdvisoryExplanationResult; lb?: LeaderboardResult; tuning?: TuningRecommendationsResponse }>({});
 const [loadingAn, setLoadingAn] = useState(false), [anErr, setAnErr] = useState<string | null>(null);
 const [artifacts, setArtifacts] = useState<Artifact[]>([]), [selRunArt, setSelRunArt] = useState<string | undefined>(), [audM, setAudM] = useState(false), [auditLogs, setAuditLogs] = useState<AuditLogItem[]>([]), [msg, setMsg] = useState<{ type: "success" | "error"; text: string } | null>(null);
 const okM = (t: string) => setMsg({ type: "success", text: t }), erM = (e: any, p = "") => setMsg({ type: "error", text: p ? `${p}: ${e.message || e}` : (e.message || String(e)) }), clrD = () => { setDetailRun(null); setIsAnnotating(false); };
@@ -68,6 +69,7 @@ else if (tab === "pareto" && selectedExp && runs.length && !an.p) runPareto();
 else if (tab === "cross_seed" && selectedExp && runs.length && !an.cs) runCrossSeed();
 else if (tab === "sensitivity" && selectedExp && runs.length && !an.s) runSens();
 else if (tab === "leaderboard" && selectedExp && runs.length && !an.lb) runLb();
+else if (tab === "tuning" && selectedExp && runs.length && !an.tuning) runTuning();
 }, [tab, selectedExp?.id, runs.length]);
 
 const doAnalysis = async (fn: () => Promise<void>) => { if (!selectedExp) return; setLoadingAn(true); setAnErr(null); try { await fn(); } catch (e: any) { setAnErr(e.message); } finally { setLoadingAn(false); } };
@@ -77,6 +79,19 @@ const runCrossSeed = () => doAnalysis(async () => { const cs = await api.analysi
 const runSens = (target = cfg.sens) => doAnalysis(async () => { const s = await api.analysis.sensitivity(selectedExp!.id, target || metrics[0] || "accuracy"); setAn(a => ({ ...a, s })); });
 const runAdv = () => doAnalysis(async () => { const adv = await api.analysis.advisory(selectedExp!.id, "comprehensive"); setAn(a => ({ ...a, adv })); });
 const runLb = () => doAnalysis(async () => { const lb = await api.analysis.leaderboard(selectedExp!.id, objs(), { baseline_variant: selectedExp!.baseline_variant, aggregate_by_variant: cfg.agg, aggregation_method: "mean", weight_pareto: 0.5, weight_significance: 0.5 }); setAn(a => ({ ...a, lb })); });
+const runTuning = (target = cfg.sens) => doAnalysis(async () => { 
+  const objectives = objs(); 
+  const tuning = await api.tuning.recommendations(
+    selectedExp!.id, 
+    target || metrics[0] || "accuracy", 
+    objectives.length >= 2 ? objectives : undefined,
+    undefined,
+    undefined,
+    cfg.agg,
+    "mean"
+  ); 
+  setAn(a => ({ ...a, tuning })); 
+});
 
 const handleCreateExp = async (e: React.FormEvent) => { e.preventDefault(); try { const exp = await api.experiments.create({ name: newExp.name, description: newExp.desc, domain: newExp.domain, baseline_variant: newExp.baseline }); setExpM(false); okM(`Created '${exp.name}'`); await fetchExps(); setSelExp(exp); } catch (err: any) { erM(err, "Create failed"); } };
 const handleDeleteExp = async (id: string) => { if (!confirm("Delete experiment?")) return; try { await api.experiments.delete(id); okM("Deleted"); setSelExp(null); await fetchExps(); } catch (err: any) { erM(err, "Delete failed"); } };
@@ -146,7 +161,7 @@ return (
 </div>
 
 <div className="flex border-b border-slate-800 gap-2">
-{(["runs", "pareto", "cross_seed", "sensitivity", "leaderboard", "artifacts"] as const).map(k => (
+{(["runs", "pareto", "cross_seed", "sensitivity", "leaderboard", "artifacts", "tuning"] as const).map(k => (
 <button key={k} onClick={() => setTab(k)} className={`px-3 py-2 text-xs font-semibold flex items-center gap-1.5 border-b-2 ${tab === k ? "border-blue-500 text-white bg-slate-900/60" : "border-transparent text-slate-400"}`}>
 {k === "runs" ? `Runs (${runs.length})` : k === "cross_seed" ? "Cross-Seed" : k[0].toUpperCase() + k.slice(1)}
 </button>
@@ -206,6 +221,15 @@ return (
 )}
 {tab === "leaderboard" && (<div className="space-y-3">{optPanel(runLb)}{errAlert}{an.lb ? <Leaderboard data={an.lb} /> : <div className="p-6 text-center text-slate-500 text-xs">No leaderboard data.</div>}</div>)}
 {tab === "artifacts" && (<ArtifactRegistry artifacts={artifacts} runId={selRunArt || runs[0]?.id} onRefresh={() => fetchArts(selRunArt || runs[0]?.id)} />)}
+{tab === "tuning" && (
+  <div className="space-y-3">
+    <div className="flex justify-end">
+      <button onClick={() => runTuning(cfg.sens)} disabled={loadingAn} className={bP}>{spinI}Refresh</button>
+    </div>
+    {errAlert}
+    {an.tuning ? <TuningRecommendations data={an.tuning} onRefresh={runTuning} availableMetrics={metrics} /> : <div className="p-6 text-center text-slate-500 text-xs">No tuning recommendations.</div>}
+  </div>
+)}
 </div>
 )}
 </main>

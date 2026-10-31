@@ -16,7 +16,24 @@ export interface HypothesisTestResult{baseline_variant:S;treatment_variant:S;met
 export interface CrossSeedResult{experiment_id:S;baseline_variant:S;variants_evaluated:S[];metrics_evaluated:S[];aggregations:SeedAggregatedMetric[];hypothesis_tests:HypothesisTestResult[];sample_size_warnings:S[]}
 export interface ParameterSensitivity{parameter:S;parameter_type:"numeric"|"categorical";pearson_r:N|null;spearman_rho:N|null;importance_score:N;summary:S}
 export interface SensitivityResult{experiment_id:S;target_metric:S;total_runs_analyzed:N;parameters:ParameterSensitivity[]}
-export interface AdvisoryExplanationResult{experiment_id:S;provider:S;model:S;is_advisory:B;disclaimer:S;offline_fallback:B;advisory_text:S;evidence_summary:R}
+export interface TuningRecommendation {
+  parameter: string;
+  parameter_type: "numeric" | "categorical";
+  current_range: any[];
+  recommended_range: any[];
+  rationale: string;
+  confidence: number;
+  priority: "high" | "medium" | "low";
+  source: "sensitivity" | "pareto_knee" | "combined";
+}
+
+export interface TuningRecommendationsResponse {
+  experiment_id: string;
+  target_metric: string;
+  recommendations: TuningRecommendation[];
+  sensitivity_summary: Record<string, any>;
+  pareto_knee_config: Record<string, any> | null;
+}
 export interface AuditLogItem{id:S;user_email:S;action:S;resource_type:S;resource_id:S;details_json:R;ip_address:S|null;timestamp:S}
 export interface LeaderboardEntry{rank:N;variant_name:S;composite_score:N;pareto_score:N;significance_score:N;is_frontier:B;is_knee_point:B;is_baseline:B;metrics:RN;sample_size_n:N;seeds:N[];avg_welch_p_value:N;avg_cohens_d:N;hypervolume_contribution:N}
 export interface LeaderboardResult{experiment_id:S;objectives:ObjectiveConfig[];baseline_variant:S;leaderboard:LeaderboardEntry[];total_variants:N;weight_pareto:N;weight_significance:N;aggregation_method?:S;is_aggregated:B}

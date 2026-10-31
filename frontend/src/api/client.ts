@@ -1,4 +1,4 @@
-import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ObjectiveConfig, ParetoFrontierResult, Run, RunDiffResult, SensitivityResult, UserProfile } from "../types";
+import { AdvisoryExplanationResult, Artifact, ArtifactVerifyResult, AuditLogItem, CrossSeedResult, Experiment, LeaderboardResult, ObjectiveConfig, ParetoFrontierResult, Run, RunDiffResult, SensitivityResult, TuningRecommendationsResponse, UserProfile } from "../types";
 
 let cachedCsrfToken: string | null = null, apiBaseUrl = "";
 export const setCsrfToken = (t: string | null) => { cachedCsrfToken = t; };
@@ -70,6 +70,18 @@ export const api = {
     sensitivity: (experiment_id: string, target_metric: string) => pJ<SensitivityResult>(`${v1}/analysis/sensitivity`, { experiment_id, target_metric }),
     advisory: (experiment_id: string, analysis_type = "comprehensive") => pJ<AdvisoryExplanationResult>(`${v1}/analysis/advisory-explanation`, { experiment_id, analysis_type }),
     leaderboard: (experiment_id: string, objectives: ObjectiveConfig[], opts: Record<string, unknown> = {}) => pJ<LeaderboardResult>(`${v1}/analysis/leaderboard`, { experiment_id, objectives, ...opts }),
+  },
+  tuning: {
+    recommendations: (experiment_id: string, target_metric: string, objectives?: ObjectiveConfig[], variant_filter?: string[], seed_filter?: number[], aggregate_by_variant?: boolean, aggregation_method?: string) => 
+      pJ<TuningRecommendationsResponse>(`${v1}/tuning/recommendations`, { 
+        experiment_id, 
+        target_metric, 
+        objectives, 
+        variant_filter, 
+        seed_filter, 
+        aggregate_by_variant, 
+        aggregation_method 
+      }),
   },
   audit: {
     list: (p = 1, sz = 50) => req<Pag<AuditLogItem>>(`${v1}/audit-logs?page=${p}&page_size=${sz}`),
