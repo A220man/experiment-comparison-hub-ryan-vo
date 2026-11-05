@@ -131,7 +131,7 @@ Tests: `backend/tests/test_pareto_engine.py`, `backend/tests/test_experiment_wor
 
 ### hyperparameter-tuning-recommendations — Automated Hyperparameter Tuning Recommendations
 
-Status: in_progress
+Status: done
 
 Acceptance:
 - Search interval recommendations for influential hyperparameters identified in sensitivity analysis

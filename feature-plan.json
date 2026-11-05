@@ -171,7 +171,7 @@
     {
       "id": "hyperparameter-tuning-recommendations",
       "title": "Automated Hyperparameter Tuning Recommendations",
-      "status": "in_progress",
+      "status": "done",
       "acceptance": [
         "Search interval recommendations for influential hyperparameters identified in sensitivity analysis",
         "Boundary suggestions based on knee point parameter configurations",
