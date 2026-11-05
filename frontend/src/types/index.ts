@@ -34,6 +34,18 @@ export interface TuningRecommendationsResponse {
   sensitivity_summary: Record<string, any>;
   pareto_knee_config: Record<string, any> | null;
 }
+
+export interface AdvisoryExplanationResult {
+  experiment_id: string;
+  provider: string;
+  model: string;
+  is_advisory: boolean;
+  disclaimer: string;
+  offline_fallback: boolean;
+  advisory_text: string;
+  evidence_summary: Record<string, any>;
+}
+
 export interface AuditLogItem{id:S;user_email:S;action:S;resource_type:S;resource_id:S;details_json:R;ip_address:S|null;timestamp:S}
 export interface LeaderboardEntry{rank:N;variant_name:S;composite_score:N;pareto_score:N;significance_score:N;is_frontier:B;is_knee_point:B;is_baseline:B;metrics:RN;sample_size_n:N;seeds:N[];avg_welch_p_value:N;avg_cohens_d:N;hypervolume_contribution:N}
 export interface LeaderboardResult{experiment_id:S;objectives:ObjectiveConfig[];baseline_variant:S;leaderboard:LeaderboardEntry[];total_variants:N;weight_pareto:N;weight_significance:N;aggregation_method?:S;is_aggregated:B}

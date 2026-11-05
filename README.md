@@ -3,8 +3,7 @@
 > Work in progress. This checkpoint may be incomplete or fail tests. See PLAN.md and STATUS.md before use.
 
 
-Current version: `1.7.0`.
-
+Current version: `1.9.0`.
 Experiment Comparison Hub is an empirical experiment tracking and multi-objective comparison platform designed for machine learning researchers, evaluation engineers, and MLOps teams. Machine learning practitioners often struggle to distinguish genuine algorithmic improvements from random seed fluctuations and face conflicting trade-offs—such as accuracy versus inference latency or perplexity versus model memory—without mathematically grounded tools. The Hub solves this by computing non-dominated Pareto frontiers with normalized knee-point detection, running multi-seed hypothesis testing via Welch's two-sample t-tests and empirical bootstrap confidence intervals, ranking hyperparameter sensitivity, cryptographically verifying model artifacts with SHA-256 digests, and generating trade-off advisories grounded strictly in empirical evidence.
 
 ```mermaid
@@ -69,8 +68,9 @@ flowchart TD
 - **Non-Parametric & Effect Size Verification**: Reports Mann-Whitney U test p-values alongside Cohen's $d$ (pooled standard deviation) and Cliff's delta effect sizes.
 - **Statistical Power Warnings**: Automatically warns analysts when a variant has fewer than 3–5 seeds, preventing false confidence from underpowered runs.
 
-### 3. Hyperparameter Sensitivity & Run Diffing
+### 3. Hyperparameter Sensitivity, Tuning Recommendations & Run Diffing
 - **Spearman & Pearson Correlation**: Ranks hyperparameter impact on primary evaluation metrics, identifying critical tuning knobs and inert parameters.
+- **Automated Tuning Recommendations**: Generates search interval recommendations for influential hyperparameters using sensitivity correlation analysis and Pareto knee point boundary suggestions, with priority levels (high/medium/low), confidence scores, and source attribution.
 - **Pairwise Run Diff Analyzer**: Inspects parameter deltas side-by-side with exact metric divergence and percentage changes.
 
 ### 4. Cryptographic Artifact Integrity Registry
@@ -114,6 +114,7 @@ flowchart TD
 | `POST` | `/api/v1/analysis/cross-seed` | Viewer+ | Computes Welch t-test, Cohen's d, and dual 95% CIs |
 | `POST` | `/api/v1/analysis/sensitivity` | Viewer+ | Computes parameter correlation ranking on target metric |
 | `POST` | `/api/v1/analysis/advisory-explanation` | Viewer+ | Synthesizes trade-off advisory grounded in analysis results |
+| `POST` | `/api/v1/tuning/recommendations` | Viewer+ | Generates hyperparameter tuning recommendations from sensitivity and Pareto analysis |
 | `GET` | `/api/v1/audit-logs` | Admin | Reads immutable audit trail of all mutations |
 | `GET` | `/api/v1/export/runs.csv` | Viewer+ | Exports experiment runs as downloadable CSV |
 | `GET` | `/api/v1/export/experiments/{id}` | Viewer+ | Exports complete experiment bundle JSON |

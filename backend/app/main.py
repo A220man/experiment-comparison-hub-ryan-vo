@@ -11,6 +11,7 @@ from backend.app.api.auth_routes import router as auth_router
 from backend.app.api.experiment_routes import router as experiment_router
 from backend.app.api.export_routes import router as export_router
 from backend.app.api.tuning_routes import router as tuning_router
+from backend.app.api.run_routes import router as run_router
 from backend.app.core.config import settings
 from backend.app.core.database import SessionLocal, init_db
 
