@@ -63,6 +63,15 @@ class AdvisoryExplanationResponse(B): experiment_id: S; provider: S; model: S; i
 
 class AuditLogResponse(B):
     model_config = _orm
+    id: S
+    user_email: S
+    action: S
+    resource_type: S
+    resource_id: S
+    details_json: D[S, Any]
+    ip_address: OS
+    timestamp: dt.datetime
+
 class TuningRecommendation(B):
     parameter: S
     parameter_type: Literal['numeric', 'categorical']
