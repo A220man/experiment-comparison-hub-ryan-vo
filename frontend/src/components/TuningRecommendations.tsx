@@ -133,11 +133,29 @@ const TuningRecommendations: React.FC<TuningRecommendationsProps> = ({
               <span className="font-medium">Sensitivity Summary</span>
             </div>
             <div className="flex flex-wrap gap-2 text-[11px] font-mono text-purple-200">
-              {Object.entries(sensitivity_summary).map(([k, v]) => (
-                <span key={k} className="bg-purple-950/60 border border-purple-800 px-1.5 py-0.5 rounded">
-                  {k}: {typeof v === "number" ? v.toFixed(3) : v}
-                </span>
-              ))}
+              {Object.entries(sensitivity_summary).map(([k, v]) => {
+                if (k === "top_parameters" && Array.isArray(v)) {
+                  return (
+                    <div key={k} className="w-full space-y-1">
+                      <span className="text-purple-400 text-[10px] uppercase tracking-wide">Top Parameters</span>
+                      {v.map((p: any, idx: number) => (
+                        <div key={idx} className="flex items-center gap-1 px-1.5 py-0.5 bg-purple-950/60 border border-purple-800 rounded">
+                          <span className="font-mono text-white">{p.parameter}</span>
+                          <span className="text-purple-400">(imp: {p.importance.toFixed(2)}, {p.type})</span>
+                        </div>
+                      ))}
+                    </div>
+                  );
+                }
+                if (Array.isArray(v) || (typeof v === "object" && v !== null)) {
+                  return null;
+                }
+                return (
+                  <span key={k} className="bg-purple-950/60 border border-purple-800 px-1.5 py-0.5 rounded">
+                    {k}: {typeof v === "number" ? v.toFixed(3) : v}
+                  </span>
+                );
+              })}
             </div>
           </div>
         )}
