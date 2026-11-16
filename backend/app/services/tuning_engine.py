@@ -262,6 +262,10 @@ def _recommend_from_pareto_knee(
                 new_min = curr_min
                 new_max = curr_max
 
+            # Defensive: ensure valid range (new_min < new_max)
+            if new_min >= new_max:
+                continue
+
             rationale = f"Pareto knee point configuration uses {param}={knee_val:.4f}. This represents the optimal trade-off across objectives {[f'{o.metric} ({o.direction})' for o in objectives]}. Consider focusing search near this value."
 
             recommendations.append(TuningRecommendation(
