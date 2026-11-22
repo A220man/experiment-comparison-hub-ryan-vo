@@ -77,7 +77,7 @@ class TuningRecommendationsResponse:
             "target_metric": self.target_metric,
             "recommendations": [r.to_dict() for r in self.recommendations],
             "sensitivity_summary": self.sensitivity_summary,
-            "pareto_knee_config": self.pareto_knee_config,
+            "pareto_knee_config": self.pareto_knee_config or {},
         }
 
 
