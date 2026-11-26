@@ -304,11 +304,16 @@ def generate_tuning_recommendations(
 ) -> TuningRecommendationsResponse:
     """Generate hyperparameter tuning recommendations from sensitivity and Pareto analysis.
 
+    Combines sensitivity analysis (Spearman/Pearson correlation, ANOVA) with
+    Pareto knee point configurations to provide search interval recommendations
+    and boundary suggestions for influential hyperparameters.
+
     Args:
         runs: List of run dicts with hyperparameters and metrics
         sensitivity_response: Output from sensitivity analysis
         pareto_response: Optional Pareto frontier result for knee point recommendations
-        objectives: Objectives used for Pareto analysis (required if pareto_response provided)
+        objectives: Objectives used for Pareto analysis. If None and pareto_response
+            is provided, recommendations will be based on sensitivity analysis only.
 
     Returns:
         TuningRecommendationsResponse with prioritized recommendations
